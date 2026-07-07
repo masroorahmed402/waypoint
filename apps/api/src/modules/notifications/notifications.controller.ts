@@ -13,4 +13,12 @@ export class NotificationsController {
     const sent = await this.svc.scanAndSend();
     return { ok: true, sent };
   }
+
+  /** Dev-only: run the weekly digest immediately instead of waiting for Monday 9am. */
+  @Post('run-digest')
+  async runDigest() {
+    if (this.config.isProd) throw new ForbiddenException('Disabled in production');
+    const sent = await this.svc.sendWeeklyDigest();
+    return { ok: true, sent };
+  }
 }
