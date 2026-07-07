@@ -40,6 +40,7 @@ export default function ApplicationsPage() {
 function Inner() {
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
+  const [mobileStage, setMobileStage] = useState<string>(STAGES[0]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['applications'],
@@ -77,70 +78,99 @@ function Inner() {
           <div className="mt-4"><Button variant="accent" onClick={() => setAdding(true)}>Add application</Button></div>
         </Card>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {STAGES.map((s) => {
-            const color = STAGE_COLOR[s];
-            const items = byStage(s);
-            return (
+        <>
+          {/* Mobile: stage picker + single column */}
+          <div className="md:hidden">
+            <select
+              value={mobileStage}
+              onChange={(e) => setMobileStage(e.target.value)}
+              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium shadow-sm"
+            >
+              {STAGES.map((s) => (
+                <option key={s} value={s}>{STAGE_LABEL[s]} ({byStage(s).length})</option>
+              ))}
+            </select>
+            <div className="mt-4">
+              <StageColumn stage={mobileStage} items={byStage(mobileStage)} onMove={(id, stage) => move.mutate({ id, stage })} />
+            </div>
+          </div>
+
+          {/* Desktop: horizontal-scroll kanban */}
+          <div className="hidden gap-4 overflow-x-auto pb-2 md:flex">
+            {STAGES.map((s) => (
               <div key={s} className="w-[200px] shrink-0 rounded-xl bg-slate-50 p-3">
-                <div className={`mb-3 flex items-center justify-between border-l-4 px-2 py-1 ${color.border}`}>
-                  <span className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${color.pill}`}>
-                    {STAGE_LABEL[s]}
-                  </span>
-                  <span className="text-xs text-slate-400">{items.length}</span>
-                </div>
-                {items.length === 0 ? (
-                  <div className="rounded-lg border border-dashed border-slate-300 py-8 text-center text-xs text-slate-400">
-                    No applications
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {items.map((a) => {
-                      const salary = fmtSalary(a.salaryMin, a.salaryMax);
-                      return (
-                        <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
-                          <div className="text-base font-bold text-ink">{a.roleTitle}</div>
-                          <div className="text-xs text-slate-500">{a.companyName}</div>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            {a.sponsorshipConfirmed === 'YES' && (
-                              <span className="inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                                sponsors
-                              </span>
-                            )}
-                            {salary && (
-                              <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                                {salary}
-                              </span>
-                            )}
-                          </div>
-                          {a.appliedAt && (
-                            <div className="mt-1.5 text-[11px] text-slate-400">Applied {fmtDate(a.appliedAt)}</div>
-                          )}
-                          {a.notes && (
-                            <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{a.notes}</p>
-                          )}
-                          <div className="mt-2.5">
-                            <select
-                              value=""
-                              onChange={(e) => e.target.value && move.mutate({ id: a.id, stage: e.target.value })}
-                              className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-ink/10"
-                            >
-                              <option value="">Move to…</option>
-                              {STAGES.filter((x) => x !== s).map((target) => (
-                                <option key={target} value={target}>{STAGE_LABEL[target]}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <StageHeader stage={s} count={byStage(s).length} />
+                <StageColumn stage={s} items={byStage(s)} onMove={(id, stage) => move.mutate({ id, stage })} />
               </div>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        </>
       )}
+    </div>
+  );
+}
+
+function StageHeader({ stage, count }: { stage: string; count: number }) {
+  const color = STAGE_COLOR[stage];
+  return (
+    <div className={`mb-3 flex items-center justify-between border-l-4 px-2 py-1 ${color.border}`}>
+      <span className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${color.pill}`}>
+        {STAGE_LABEL[stage]}
+      </span>
+      <span className="text-xs text-slate-400">{count}</span>
+    </div>
+  );
+}
+
+function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; onMove: (id: string, stage: string) => void }) {
+  if (items.length === 0) {
+    return (
+      <div className="rounded-lg border border-dashed border-slate-300 py-8 text-center text-xs text-slate-400">
+        No applications
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {items.map((a) => {
+        const salary = fmtSalary(a.salaryMin, a.salaryMax);
+        return (
+          <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
+            <div className="text-base font-bold text-ink">{a.roleTitle}</div>
+            <div className="text-xs text-slate-500">{a.companyName}</div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {a.sponsorshipConfirmed === 'YES' && (
+                <span className="inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                  sponsors
+                </span>
+              )}
+              {salary && (
+                <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                  {salary}
+                </span>
+              )}
+            </div>
+            {a.appliedAt && (
+              <div className="mt-1.5 text-[11px] text-slate-400">Applied {fmtDate(a.appliedAt)}</div>
+            )}
+            {a.notes && (
+              <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{a.notes}</p>
+            )}
+            <div className="mt-2.5">
+              <select
+                value=""
+                onChange={(e) => e.target.value && onMove(a.id, e.target.value)}
+                className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-ink/10"
+              >
+                <option value="">Move to…</option>
+                {STAGES.filter((x) => x !== stage).map((target) => (
+                  <option key={target} value={target}>{STAGE_LABEL[target]}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

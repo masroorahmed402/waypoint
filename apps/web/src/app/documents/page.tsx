@@ -112,14 +112,14 @@ function Inner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Documents</h1>
           <p className="mt-1 text-sm text-slate-500">
             {fmtSize(usedBytes)} of {fmtSize(QUOTA_BYTES)} used
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <select
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
             value={uploadType}
