@@ -148,9 +148,50 @@ export class ImmigrationService {
     await this.prisma.deadline.delete({ where: { id } });
   }
 
+  /** Builds an RFC 5545 .ics feed of the user's active deadlines, one all-day VEVENT each with a 1-day-before alarm. */
+  async exportIcs(userId: string): Promise<string> {
+    const deadlines = await this.prisma.deadline.findMany({
+      where: { userId, dismissedAt: null },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    const now = icsUtcStamp(new Date());
+    const lines: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Waypoint//Deadlines//EN', 'CALSCALE:GREGORIAN'];
+    for (const d of deadlines) {
+      lines.push(
+        'BEGIN:VEVENT',
+        `UID:${d.id}@waypoint.app`,
+        `DTSTAMP:${now}`,
+        `DTSTART;VALUE=DATE:${icsDateStamp(d.dueDate)}`,
+        `SUMMARY:${icsEscape(d.title)}`,
+        ...(d.notes ? [`DESCRIPTION:${icsEscape(d.notes)}`] : []),
+        'BEGIN:VALARM',
+        'ACTION:DISPLAY',
+        'DESCRIPTION:Reminder',
+        'TRIGGER:-P1D',
+        'END:VALARM',
+        'END:VEVENT',
+      );
+    }
+    lines.push('END:VCALENDAR');
+    return lines.join('\r\n');
+  }
+
   private async requireProfile(userId: string) {
     const profile = await this.prisma.studentProfile.findUnique({ where: { userId } });
     if (!profile) throw new NotFoundException('Complete onboarding first (PUT /users/me/profile)');
     return profile;
   }
+}
+
+function icsDateStamp(d: Date): string {
+  return d.toISOString().slice(0, 10).replace(/-/g, '');
+}
+
+function icsUtcStamp(d: Date): string {
+  return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+}
+
+function icsEscape(s: string): string {
+  return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 }

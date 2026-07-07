@@ -1,6 +1,7 @@
 'use client';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, apiBlob } from '@/lib/api';
 import AppShell from '@/components/app-shell';
 import { Button, Card, Disclaimer } from '@/components/ui';
 
@@ -22,8 +23,24 @@ export default function ImmigrationPage() {
 
 function Inner() {
   const qc = useQueryClient();
+  const [exporting, setExporting] = useState(false);
   const tl = useQuery({ queryKey: ['timeline'], queryFn: () => api<Timeline>('/immigration/timeline') });
   const dl = useQuery({ queryKey: ['deadlines', 'all'], queryFn: () => api<Deadline[]>('/immigration/deadlines') });
+
+  async function exportCalendar() {
+    setExporting(true);
+    try {
+      const blob = await apiBlob('/immigration/deadlines/export.ics');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'waypoint-deadlines.ics';
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const dismiss = useMutation({
     mutationFn: (id: string) =>
@@ -53,6 +70,9 @@ function Inner() {
         <h1 className="font-display text-2xl font-semibold text-ink">Immigration</h1>
         <div className="flex items-center gap-3">
           {tl.data && <span className="text-xs text-slate-400">rules {tl.data.ruleVersion}</span>}
+          <Button variant="ghost" onClick={exportCalendar} disabled={exporting}>
+            {exporting ? 'Exporting…' : 'Export to calendar'}
+          </Button>
         </div>
       </div>
       <Disclaimer />

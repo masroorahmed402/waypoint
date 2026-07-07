@@ -40,3 +40,16 @@ export async function api<T>(path: string, init: RequestInit = {}, retried = fal
   }
   return body as T;
 }
+
+/** For non-JSON downloads (e.g. .ics export) — same auth as api(), returns a raw Blob. */
+export async function apiBlob(path: string, retried = false): Promise<Blob> {
+  const res = await fetch(`${API}${path}`, {
+    credentials: 'include',
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+  });
+  if (res.status === 401 && !retried) {
+    if (await refresh()) return apiBlob(path, true);
+  }
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+  return res.blob();
+}
