@@ -7,6 +7,8 @@ import { Response, Request } from 'express';
 import { AuthService, SessionPair } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { AppConfig } from '../../config/app.config';
 
@@ -45,6 +47,22 @@ export class AuthController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.auth.logout(req.cookies?.[REFRESH_COOKIE]);
     res.clearCookie(REFRESH_COOKIE, { path: '/api/v1/auth' });
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @HttpCode(204)
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.auth.forgotPassword(dto.email);
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @HttpCode(204)
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.auth.resetPassword(dto.token, dto.newPassword);
   }
 
   // ── Google OAuth ──

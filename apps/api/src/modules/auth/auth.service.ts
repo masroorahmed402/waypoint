@@ -16,6 +16,8 @@ import { RegisterDto } from './dto/register.dto';
 import { GoogleUser } from './strategies/google.strategy';
 import { EMAIL_SERVICE, EmailService } from '../notifications/email.interface';
 
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
 const ARGON2_OPTS: argon2.Options = {
   type: argon2.argon2id,
   memoryCost: 1 << 16, // 64 MB
@@ -87,6 +89,63 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
     return this.issueSession(user, meta);
+  }
+
+  // ── Forgot / reset password ───────────────────────────────────────────────
+
+  /** Always succeeds from the caller's view — no user enumeration. */
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase().trim() },
+    });
+    if (!user || user.deletedAt) return;
+
+    const raw = randomBytes(32).toString('base64url');
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: this.hash(raw),
+        expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+      },
+    });
+
+    try {
+      await this.email.send(this.buildResetEmail(user.email, user.firstName, raw));
+    } catch {
+      this.log.warn(`Password reset email failed for ${user.id}`);
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const tokenHash = this.hash(token);
+    const stored = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+    if (!stored || stored.usedAt || stored.expiresAt < new Date() || stored.user.deletedAt) {
+      throw new BadRequestException('This reset link is invalid or has expired');
+    }
+
+    const strength = zxcvbn(newPassword, [stored.user.email, stored.user.firstName, stored.user.lastName]);
+    if (strength.score < 3) {
+      throw new BadRequestException(
+        'Password too weak — use a longer passphrase or mix of unrelated words.',
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: stored.userId },
+      data: { passwordHash: await argon2.hash(newPassword, ARGON2_OPTS) },
+    });
+    await this.prisma.passwordResetToken.update({
+      where: { id: stored.id },
+      data: { usedAt: new Date() },
+    });
+    // Reset invalidates all existing sessions.
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: stored.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   // ── Google OAuth ──────────────────────────────────────────────────────────
@@ -215,6 +274,27 @@ export class AuthService {
       </div>`;
     const text = `Hi ${firstName},\n\nWelcome to Waypoint. Upload your I-20 to build your immigration timeline, set up deadline reminders, and track your job search — all in one place.\n\nGo to Waypoint: ${webOrigin}\n\n— Waypoint`;
     return { to, subject: 'Welcome to Waypoint', html, text };
+  }
+
+  private buildResetEmail(to: string, firstName: string, rawToken: string) {
+    const name = escapeHtml(firstName);
+    const resetUrl = `${this.config.webOrigin}/reset-password?token=${rawToken}`;
+    const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto">
+        <p>Hi ${name},</p>
+        <p>We received a request to reset your Waypoint password. This link expires in 1 hour.</p>
+        <p style="margin-top:20px">
+          <a href="${resetUrl}" style="display:inline-block;background:#16263f;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">
+            Reset your password →
+          </a>
+        </p>
+        <p style="margin-top:20px;color:#475569;font-size:13px">
+          If you didn't request this, you can safely ignore this email — your password won't change.
+        </p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:24px">— Waypoint</p>
+      </div>`;
+    const text = `Hi ${firstName},\n\nWe received a request to reset your Waypoint password. This link expires in 1 hour.\n\nReset your password: ${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.\n\n— Waypoint`;
+    return { to, subject: 'Reset your Waypoint password', html, text };
   }
 }
 

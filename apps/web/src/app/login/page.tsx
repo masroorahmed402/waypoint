@@ -42,8 +42,14 @@ export default function Login() {
         <h1 className="text-xl font-semibold">Welcome back</h1>
         <div className="mt-5 space-y-3">
           <div><Label>Email</Label><Input type="email" value={form.email} onChange={set('email')} /></div>
-          <div><Label>Password</Label><Input type="password" value={form.password} onChange={set('password')}
-            onKeyDown={(e) => e.key === 'Enter' && submit()} /></div>
+          <div>
+            <div className="flex items-center justify-between">
+              <Label>Password</Label>
+              <Link href="/forgot-password" className="mb-1 text-xs text-slate-500 hover:text-ink">Forgot password?</Link>
+            </div>
+            <Input type="password" value={form.password} onChange={set('password')}
+              onKeyDown={(e) => e.key === 'Enter' && submit()} />
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button onClick={submit} disabled={busy} className="w-full">{busy ? 'Signing in…' : 'Log in'}</Button>
           <a href={`${API}/auth/google`} className="block">
