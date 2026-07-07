@@ -15,6 +15,8 @@ export default function Onboarding() {
   });
   const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
   const [i20Notice, setI20Notice] = useState('');
+  const [staleWarning, setStaleWarning] = useState('');
+  const [cptOptFound, setCptOptFound] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -34,13 +36,25 @@ export default function Onboarding() {
     if (x.programEndDate) { next.programEndDate = x.programEndDate; filled.add('programEndDate'); }
     setF(next);
     setPrefilled(filled);
-    setI20Notice(x.notice ?? '');
+
+    // The backend appends a "⚠️ ..." stale-I20 nudge onto the end of notice —
+    // split it out so it can be shown prominently instead of blended in.
+    const notice = x.notice ?? '';
+    const warnIdx = notice.indexOf('⚠️');
+    setI20Notice(warnIdx === -1 ? notice : notice.slice(0, warnIdx).trim());
+    setStaleWarning(warnIdx === -1 ? '' : notice.slice(warnIdx));
+
+    setCptOptFound(
+      x.authorizations
+        .filter((a) => a.endDate)
+        .map((a) => `${a.type} authorization${a.employerName ? ` at ${a.employerName}` : ''} through ${a.endDate}`),
+    );
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true); setError(''); setI20Notice('');
+    setUploading(true); setError(''); setI20Notice(''); setStaleWarning(''); setCptOptFound([]);
     try {
       const extract = await uploadAndExtractI20(file);
       track('i20_uploaded', { hasTextLayer: extract.hasTextLayer, fieldsFound: extract.foundFields.length });
@@ -86,8 +100,10 @@ export default function Onboarding() {
       <div className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium">Have your I-20 handy?</p>
-            <p className="text-xs text-slate-500">Upload the PDF and we&apos;ll fill in what we can — you review before saving.</p>
+            <p className="text-sm font-medium">Upload your most recent I-20</p>
+            <p className="text-xs text-slate-500">
+              Make sure it&apos;s your latest — DSOs issue new I-20s for CPT, OPT, and program extensions.
+            </p>
           </div>
           <Button variant="ghost" type="button" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? 'Reading…' : 'Upload I-20'}
@@ -97,6 +113,16 @@ export default function Onboarding() {
         {i20Notice && (
           <p className={`mt-3 rounded-lg px-3 py-2 text-xs ${prefilled.size ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
             {i20Notice}
+          </p>
+        )}
+        {cptOptFound.map((line) => (
+          <p key={line} className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            Found {line} — we&apos;ll track this automatically.
+          </p>
+        ))}
+        {staleWarning && (
+          <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
+            {staleWarning}
           </p>
         )}
       </div>

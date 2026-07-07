@@ -1,16 +1,33 @@
 'use client';
 import { api } from './api';
 
+export interface CptOptAuthorization {
+  type: 'CPT' | 'OPT';
+  fullOrPartTime: 'FULL TIME' | 'PART TIME' | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  employerName: string | null;
+  employerCity: string | null;
+}
+
 export interface I20Extract {
   hasTextLayer: boolean;
   sevisId: string | null;
   surname: string | null;
   givenName: string | null;
   schoolName: string | null;
+  schoolOfficialName: string | null;
+  schoolOfficialTitle: string | null;
   programOfStudy: string | null;
   degreeLevel: 'BACHELORS' | 'MASTERS' | 'PHD' | 'OTHER' | null;
   programStartDate: string | null;
   programEndDate: string | null;
+  startOfClasses: string | null;
+  issueDate: string | null;
+  currentSessionStart: string | null;
+  currentSessionEnd: string | null;
+  authorizations: CptOptAuthorization[];
   foundFields: string[];
   notice: string | null;
 }

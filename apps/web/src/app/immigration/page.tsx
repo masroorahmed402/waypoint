@@ -13,6 +13,18 @@ interface Milestone {
 }
 interface Timeline { ruleVersion: string; disclaimer: string; milestones: Milestone[] }
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string; notes?: string; dismissedAt?: string | null }
+interface CptOptRecord {
+  id: string; type: string; status: string; fullOrPartTime: string | null;
+  startDate: string; endDate: string; employerName: string | null; employerCity: string | null;
+}
+interface CptSummary {
+  records: CptOptRecord[];
+  fullTimeMonthsUsed: number;
+  optEligible: boolean;
+  monthsRemainingBeforeOptLoss: number;
+  warning: string | null;
+}
+interface DsoContact { name: string; title: string | null; schoolName: string | null }
 
 const fmt = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 const daysUntil = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -26,6 +38,8 @@ function Inner() {
   const [exporting, setExporting] = useState(false);
   const tl = useQuery({ queryKey: ['timeline'], queryFn: () => api<Timeline>('/immigration/timeline') });
   const dl = useQuery({ queryKey: ['deadlines', 'all'], queryFn: () => api<Deadline[]>('/immigration/deadlines') });
+  const cpt = useQuery({ queryKey: ['cpt-summary'], queryFn: () => api<CptSummary>('/immigration/cpt-summary') });
+  const dso = useQuery({ queryKey: ['dso-contact'], queryFn: () => api<DsoContact | null>('/immigration/dso-contact') });
 
   async function exportCalendar() {
     setExporting(true);
@@ -149,6 +163,54 @@ function Inner() {
             })}
           </div>
         </Card>
+
+        {cpt.data && cpt.data.records.length > 0 && (
+          <Card>
+            <h2 className="font-display font-semibold text-ink">CPT/OPT summary</h2>
+            <div className="mt-4 space-y-3">
+              {cpt.data.records
+                .filter((r) => new Date(r.startDate) <= new Date() && new Date(r.endDate) >= new Date())
+                .map((r) => {
+                  const n = daysUntil(r.endDate);
+                  return (
+                    <div key={r.id} className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+                      <div className="text-sm font-semibold text-ink">
+                        Active {r.type}{r.employerName ? ` at ${r.employerName}` : ''}
+                      </div>
+                      <div className="mt-0.5 text-xs text-emerald-800">
+                        Expires {fmt(r.endDate)} ({n < 0 ? 'passed' : `in ${n}d`})
+                      </div>
+                    </div>
+                  );
+                })}
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-600">Full-time CPT used</span>
+                <span className="font-semibold text-ink">{cpt.data.fullTimeMonthsUsed} / 12 months</span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className={`h-full rounded-full ${cpt.data.fullTimeMonthsUsed >= 9 ? 'bg-red-500' : 'bg-beacon'}`}
+                  style={{ width: `${Math.min(100, (cpt.data.fullTimeMonthsUsed / 12) * 100)}%` }}
+                />
+              </div>
+              {cpt.data.warning && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 ring-1 ring-red-200">
+                  {cpt.data.warning}
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {dso.data && (
+          <Card>
+            <h2 className="font-display font-semibold text-ink">Your DSO</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              <span className="font-semibold text-ink">{dso.data.name}</span>
+              {dso.data.title ? `, ${dso.data.title}` : ''} — contact them for immigration questions.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );

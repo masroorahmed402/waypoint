@@ -11,6 +11,12 @@ export class ImmigrationController {
   @Get('timeline')
   timeline(@CurrentUser() u: JwtUser) { return this.svc.timeline(u.sub); }
 
+  @Get('cpt-summary')
+  cptSummary(@CurrentUser() u: JwtUser) { return this.svc.getCptSummary(u.sub); }
+
+  @Get('dso-contact')
+  dsoContact(@CurrentUser() u: JwtUser) { return this.svc.getDsoContact(u.sub); }
+
   @Get('deadlines/export.ics')
   async exportIcs(@CurrentUser() u: JwtUser, @Res() res: Response) {
     const ics = await this.svc.exportIcs(u.sub);

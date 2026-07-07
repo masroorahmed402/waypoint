@@ -11,11 +11,20 @@
 
 export const RULE_VERSION = 'f1-2026.07';
 
+export interface CptOptRecordInput {
+  type: string; // "CPT" | "OPT"
+  status: string;
+  startDate: Date;
+  endDate: Date;
+  employerName: string | null;
+}
+
 export interface ProfileDates {
   programStartDate: Date;
   programEndDate: Date;
   usEntryDate?: Date | null;
   stemEligible?: boolean;
+  cptOptRecords?: CptOptRecordInput[];
 }
 
 export type MilestoneStatus = 'PAST' | 'CURRENT' | 'UPCOMING';
@@ -51,6 +60,7 @@ const addMonths = (d: Date, n: number) => {
   copy.setMonth(copy.getMonth() + n);
   return copy;
 };
+const fmtDate = (d: Date) => d.toISOString().slice(0, 10);
 
 // Typical (informational) post-completion OPT authorization period — actual
 // start depends on USCIS processing of the I-765; ask your DSO for exact dates.
@@ -61,6 +71,10 @@ const STEM_EXTENSION_MONTHS = 17;
 /** Full journey timeline, computed — never stored (see DATABASE.md). */
 export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] {
   const items: Milestone[] = [];
+
+  const records = p.cptOptRecords ?? [];
+  const activeCpt = records.find((r) => r.type === 'CPT' && r.startDate <= now && r.endDate >= now);
+  const completedOpt = records.find((r) => r.type === 'OPT' && r.endDate < now);
 
   if (p.usEntryDate) {
     items.push({
@@ -96,28 +110,60 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
   // CPT: generally after one full academic year of enrollment (grad programs with
   // required immediate internships are the exception — DSO call).
   const cptFrom = addDays(p.programStartDate, 365);
-  items.push({
-    key: 'cpt_eligible',
-    label: 'CPT eligibility (typical)',
-    date: cptFrom,
-    status: status(cptFrom, now),
-    explanation:
-      'Curricular Practical Training generally requires one full academic year of enrollment first. Some graduate programs qualify sooner — ask your DSO.',
-    sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
-  });
+  if (activeCpt) {
+    items.push({
+      key: 'cpt_eligible',
+      label: 'CPT authorized',
+      date: cptFrom,
+      status: 'CURRENT',
+      explanation: 'Curricular Practical Training authorization is active on your record.',
+      sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
+    });
+    items.push({
+      key: 'cpt_active',
+      label: activeCpt.employerName
+        ? `Currently on CPT at ${activeCpt.employerName} — expires ${fmtDate(activeCpt.endDate)}`
+        : `Currently on CPT — expires ${fmtDate(activeCpt.endDate)}`,
+      date: activeCpt.endDate,
+      status: 'CURRENT',
+      explanation: 'Your Curricular Practical Training authorization is active. Confirm any extension or next steps with your DSO before it expires.',
+      sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
+    });
+  } else {
+    items.push({
+      key: 'cpt_eligible',
+      label: 'CPT eligibility (typical)',
+      date: cptFrom,
+      status: status(cptFrom, now),
+      explanation:
+        'Curricular Practical Training generally requires one full academic year of enrollment first. Some graduate programs qualify sooner — ask your DSO.',
+      sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
+    });
+  }
 
   // OPT filing window: opens 90 days before program end, closes 60 days after.
   const optOpen = addDays(p.programEndDate, -90);
   const optClose = addDays(p.programEndDate, 60);
-  items.push({
-    key: 'opt_window',
-    label: 'Post-completion OPT filing window',
-    dateRange: { start: optOpen, end: optClose },
-    status: now < optOpen ? 'UPCOMING' : now > optClose ? 'PAST' : 'CURRENT',
-    explanation:
-      'USCIS accepts Form I-765 for post-completion OPT from 90 days before your program end date until 60 days after — AND within 30 days of your DSO issuing the OPT recommendation I-20. File early; the window closing is unforgiving.',
-    sourceUrl: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students',
-  });
+  if (completedOpt) {
+    items.push({
+      key: 'opt_completed',
+      label: completedOpt.employerName ? `OPT completed at ${completedOpt.employerName}` : 'OPT completed',
+      date: completedOpt.endDate,
+      status: 'PAST',
+      explanation: 'Your post-completion Optional Practical Training authorization has ended.',
+      sourceUrl: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students',
+    });
+  } else {
+    items.push({
+      key: 'opt_window',
+      label: 'Post-completion OPT filing window',
+      dateRange: { start: optOpen, end: optClose },
+      status: now < optOpen ? 'UPCOMING' : now > optClose ? 'PAST' : 'CURRENT',
+      explanation:
+        'USCIS accepts Form I-765 for post-completion OPT from 90 days before your program end date until 60 days after — AND within 30 days of your DSO issuing the OPT recommendation I-20. File early; the window closing is unforgiving.',
+      sourceUrl: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students',
+    });
+  }
 
   items.push({
     key: 'program_end',

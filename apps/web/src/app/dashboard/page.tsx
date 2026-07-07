@@ -8,6 +8,8 @@ import Onboarding from '@/components/onboarding';
 import { Card } from '@/components/ui';
 
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string }
+interface CptOptRecord { type: string; startDate: string; endDate: string; employerName: string | null }
+interface CptSummary { records: CptOptRecord[] }
 
 function daysUntil(iso: string) {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -43,7 +45,18 @@ function DashboardInner() {
     enabled: hasProfile,
   });
 
+  const cpt = useQuery({
+    queryKey: ['cpt-summary'],
+    queryFn: () => api<CptSummary>('/immigration/cpt-summary'),
+    enabled: hasProfile,
+  });
+
   if (!hasProfile) return <Onboarding />;
+
+  const now = new Date();
+  const activeCpt = cpt.data?.records.find(
+    (r) => r.type === 'CPT' && new Date(r.startDate) <= now && new Date(r.endDate) >= now,
+  );
 
   const next = deadlines.data?.slice(0, 5) ?? [];
   const pipeline = apps.data?.data ?? [];
@@ -92,6 +105,12 @@ function DashboardInner() {
           </div>
         )}
       </div>
+
+      {activeCpt && (
+        <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
+          Active CPT{activeCpt.employerName ? ` at ${activeCpt.employerName}` : ''} — expires in {daysUntil(activeCpt.endDate)} days.
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="overflow-hidden">

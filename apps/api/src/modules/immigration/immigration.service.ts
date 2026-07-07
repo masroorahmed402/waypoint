@@ -10,6 +10,7 @@ export class ImmigrationService {
 
   async timeline(userId: string) {
     const profile = await this.requireProfile(userId);
+    const cptOptRecords = await this.prisma.cptOptRecord.findMany({ where: { userId } });
     return {
       ruleVersion: RULE_VERSION,
       disclaimer:
@@ -19,6 +20,7 @@ export class ImmigrationService {
         programEndDate: profile.programEndDate,
         usEntryDate: profile.usEntryDate,
         stemEligible: profile.stemEligible,
+        cptOptRecords,
       }),
     };
   }
@@ -187,6 +189,59 @@ export class ImmigrationService {
     }
     lines.push('END:VCALENDAR');
     return lines.join('\r\n');
+  }
+
+  /** Full-time CPT eats into post-completion OPT eligibility past 12 cumulative months. */
+  async getCptSummary(userId: string) {
+    const records = await this.prisma.cptOptRecord.findMany({
+      where: { userId, type: 'CPT' },
+      orderBy: { startDate: 'asc' },
+    });
+
+    let fullTimeMonths = 0;
+    for (const r of records) {
+      if (r.fullOrPartTime?.includes('FULL')) {
+        const months = (r.endDate.getTime() - r.startDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+        fullTimeMonths += months;
+      }
+    }
+
+    const optEligible = fullTimeMonths < 12;
+    const monthsRemaining = Math.max(0, 12 - fullTimeMonths);
+
+    return {
+      records,
+      fullTimeMonthsUsed: Math.round(fullTimeMonths * 10) / 10,
+      optEligible,
+      monthsRemainingBeforeOptLoss: Math.round(monthsRemaining * 10) / 10,
+      warning: fullTimeMonths >= 9
+        ? `You have used ${Math.round(fullTimeMonths * 10) / 10} months of full-time CPT. At 12 months you lose OPT eligibility.`
+        : null,
+    };
+  }
+
+  async getDsoContact(userId: string) {
+    return this.prisma.dsoContact.findUnique({ where: { userId } });
+  }
+
+  /** Auto-generated deadline for a CPT/OPT authorization's end date; upserts by dedupeKey so re-extraction doesn't duplicate. */
+  async createCptOptDeadline(userId: string, record: { id: string; type: string; endDate: Date; employerName: string | null }) {
+    const label = record.employerName ? `${record.type} authorization expires — ${record.employerName}` : `${record.type} authorization expires`;
+    await this.prisma.deadline.upsert({
+      where: { userId_dedupeKey: { userId, dedupeKey: `cptopt:${record.id}` } },
+      create: {
+        userId,
+        source: DeadlineSource.SYSTEM_GENERATED,
+        type: DeadlineType.CUSTOM,
+        title: label,
+        dueDate: record.endDate,
+        notes: record.employerName
+          ? `Your ${record.type} authorization at ${record.employerName} expires on this date. Contact your DSO to extend or apply for OPT.`
+          : `Your ${record.type} authorization expires on this date. Contact your DSO to extend or apply for OPT.`,
+        dedupeKey: `cptopt:${record.id}`,
+      },
+      update: { dueDate: record.endDate, title: label },
+    });
   }
 
   private async requireProfile(userId: string) {

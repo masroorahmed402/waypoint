@@ -1,3 +1,14 @@
+/** One row from the I-20's Employment Authorizations / Employer Information tables. */
+export interface CptOptAuthorization {
+  type: 'CPT' | 'OPT';
+  fullOrPartTime: 'FULL TIME' | 'PART TIME' | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  employerName: string | null;
+  employerCity: string | null;
+}
+
 /** What we try to pull off a Form I-20. Every field is best-effort → may be null. */
 export interface I20Extract {
   /** true if the PDF had a real text layer we could read (false for scanned/photo). */
@@ -6,12 +17,19 @@ export interface I20Extract {
   surname: string | null;
   givenName: string | null;
   schoolName: string | null;
+  schoolOfficialName: string | null;
+  schoolOfficialTitle: string | null;
   programOfStudy: string | null;
   /** Mapped to the app's DegreeLevel enum where possible. */
   degreeLevel: 'BACHELORS' | 'MASTERS' | 'PHD' | 'OTHER' | null;
   /** ISO 8601 (yyyy-mm-dd) or null. */
   programStartDate: string | null;
   programEndDate: string | null;
+  startOfClasses: string | null;
+  issueDate: string | null;
+  currentSessionStart: string | null;
+  currentSessionEnd: string | null;
+  authorizations: CptOptAuthorization[];
   /** Which fields we actually found — drives the "review these" UI. */
   foundFields: string[];
   /** Human-readable note when extraction couldn't do much. */
