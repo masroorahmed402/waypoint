@@ -54,7 +54,7 @@ export class ImmigrationService {
       where: {
         userId,
         dedupeKey: 'travel_signature',
-        source: 'SYSTEM_GENERATED',
+        source: DeadlineSource.SYSTEM_GENERATED,
       },
     });
   }
