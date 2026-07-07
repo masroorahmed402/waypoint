@@ -8,7 +8,16 @@ import { Button, Input, Label, Card } from '@/components/ui';
 interface App {
   id: string; companyName: string; roleTitle: string; stage: string;
   url?: string; location?: string; sponsorshipConfirmed: string; notes?: string;
+  appliedAt?: string; salaryMin?: number; salaryMax?: number;
 }
+
+const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const fmtSalary = (min?: number, max?: number) => {
+  if (!min && !max) return null;
+  const f = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : n);
+  if (min && max) return `$${f(min)}–${f(max)}`;
+  return `$${f((min ?? max)!)}`;
+};
 
 const STAGES = ['SAVED', 'APPLIED', 'OA', 'INTERVIEW', 'OFFER', 'REJECTED'] as const;
 const STAGE_LABEL: Record<string, string> = {
@@ -86,28 +95,45 @@ function Inner() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {items.map((a) => (
-                      <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
-                        <div className="text-base font-bold text-ink">{a.roleTitle}</div>
-                        <div className="text-xs text-slate-500">{a.companyName}</div>
-                        {a.sponsorshipConfirmed === 'YES' && (
-                          <span className="mt-1.5 inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                            sponsors
-                          </span>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {STAGES.filter((x) => x !== s).slice(0, 3).map((target) => (
-                            <button
-                              key={target}
-                              onClick={() => move.mutate({ id: a.id, stage: target })}
-                              className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-900"
+                    {items.map((a) => {
+                      const salary = fmtSalary(a.salaryMin, a.salaryMax);
+                      return (
+                        <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
+                          <div className="text-base font-bold text-ink">{a.roleTitle}</div>
+                          <div className="text-xs text-slate-500">{a.companyName}</div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                            {a.sponsorshipConfirmed === 'YES' && (
+                              <span className="inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                                sponsors
+                              </span>
+                            )}
+                            {salary && (
+                              <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                                {salary}
+                              </span>
+                            )}
+                          </div>
+                          {a.appliedAt && (
+                            <div className="mt-1.5 text-[11px] text-slate-400">Applied {fmtDate(a.appliedAt)}</div>
+                          )}
+                          {a.notes && (
+                            <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{a.notes}</p>
+                          )}
+                          <div className="mt-2.5">
+                            <select
+                              value=""
+                              onChange={(e) => e.target.value && move.mutate({ id: a.id, stage: e.target.value })}
+                              className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-ink/10"
                             >
-                              → {STAGE_LABEL[target].split(' ')[0]}
-                            </button>
-                          ))}
+                              <option value="">Move to…</option>
+                              {STAGES.filter((x) => x !== s).map((target) => (
+                                <option key={target} value={target}>{STAGE_LABEL[target]}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -120,7 +146,10 @@ function Inner() {
 }
 
 function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [f, setF] = useState({ companyName: '', roleTitle: '', url: '', location: '', sponsorshipConfirmed: 'UNKNOWN' });
+  const [f, setF] = useState({
+    companyName: '', roleTitle: '', url: '', location: '', sponsorshipConfirmed: 'UNKNOWN',
+    salaryMin: '', salaryMax: '', notes: '',
+  });
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
 
@@ -133,6 +162,9 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
           companyName: f.companyName, roleTitle: f.roleTitle,
           url: f.url || undefined, location: f.location || undefined,
           sponsorshipConfirmed: f.sponsorshipConfirmed,
+          salaryMin: f.salaryMin ? Number(f.salaryMin) : undefined,
+          salaryMax: f.salaryMax ? Number(f.salaryMax) : undefined,
+          notes: f.notes || undefined,
         }),
       });
       onSaved();
@@ -146,6 +178,8 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
         <div><Label>Role</Label><Input value={f.roleTitle} onChange={set('roleTitle')} /></div>
         <div><Label>Job URL (optional)</Label><Input value={f.url} onChange={set('url')} /></div>
         <div><Label>Location (optional)</Label><Input value={f.location} onChange={set('location')} /></div>
+        <div><Label>Salary min (optional)</Label><Input type="number" value={f.salaryMin} onChange={set('salaryMin')} /></div>
+        <div><Label>Salary max (optional)</Label><Input type="number" value={f.salaryMax} onChange={set('salaryMax')} /></div>
         <div>
           <Label>Sponsors international?</Label>
           <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={f.sponsorshipConfirmed} onChange={set('sponsorshipConfirmed')}>
@@ -154,6 +188,7 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
             <option value="NO">No</option>
           </select>
         </div>
+        <div className="md:col-span-2"><Label>Notes (optional)</Label><Input value={f.notes} onChange={set('notes')} /></div>
       </div>
       <div className="mt-4 flex gap-2">
         <Button onClick={save} disabled={busy || !f.companyName || !f.roleTitle}>{busy ? 'Saving…' : 'Save'}</Button>

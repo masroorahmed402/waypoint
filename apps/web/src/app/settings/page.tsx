@@ -73,12 +73,16 @@ function Inner() {
   }
 
   return (
-    <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+    <div className="max-w-2xl space-y-8">
+      <div>
+        <h1 className="font-display text-3xl font-semibold text-ink">Settings</h1>
+        <p className="mt-1 text-sm text-slate-500">Manage your account, academic profile, and data.</p>
+      </div>
 
-      <Card>
-        <h2 className="font-display font-semibold">Profile</h2>
-        <div className="mt-4 space-y-3">
+      <Card className="p-6">
+        <h2 className="font-display text-lg font-semibold text-ink">Profile</h2>
+        <p className="mt-0.5 text-sm text-slate-500">Your name and login email.</p>
+        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>First name</Label><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></div>
             <div><Label>Last name</Label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
@@ -91,9 +95,10 @@ function Inner() {
         </div>
       </Card>
 
-      <Card>
-        <h2 className="font-display font-semibold">Academic profile</h2>
-        <div className="mt-4 space-y-3">
+      <Card className="p-6">
+        <h2 className="font-display text-lg font-semibold text-ink">Academic profile</h2>
+        <p className="mt-0.5 text-sm text-slate-500">Powers your timeline and auto-generated deadlines.</p>
+        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
           <div><Label>University</Label><Input value={pf.universityName} onChange={setP('universityName')} /></div>
           <div><Label>Major / program</Label><Input value={pf.major} onChange={setP('major')} /></div>
           <div className="grid grid-cols-2 gap-3">
@@ -135,26 +140,28 @@ function Inner() {
         </div>
       </Card>
 
-      <Card>
-        <h2 className="font-display font-semibold">Session</h2>
-        <p className="mt-1 text-sm text-slate-500">Sign out of this device.</p>
-        <div className="mt-3"><Button variant="ghost" onClick={logout}>Log out</Button></div>
+      <Card className="p-6">
+        <h2 className="font-display text-lg font-semibold text-ink">Session</h2>
+        <p className="mt-0.5 text-sm text-slate-500">Sign out of this device.</p>
+        <div className="mt-4 border-t border-slate-100 pt-4"><Button variant="ghost" onClick={logout}>Log out</Button></div>
       </Card>
 
-      <Card className="border-red-200">
-        <h2 className="font-display font-semibold text-red-700">Delete account</h2>
+      <Card className="border-red-200 p-6">
+        <h2 className="font-display text-lg font-semibold text-red-700">Delete account</h2>
         <p className="mt-1 text-sm text-slate-600">
           This removes your profile, timeline, deadlines, applications, and documents. This can&apos;t be undone.
         </p>
-        {!confirmDelete ? (
-          <div className="mt-3"><Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete my account</Button></div>
-        ) : (
-          <div className="mt-3 flex items-center gap-3">
-            <span className="text-sm font-medium">Are you sure?</span>
-            <Button variant="danger" onClick={remove}>Yes, delete everything</Button>
-            <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
-          </div>
-        )}
+        <div className="mt-4 border-t border-red-100 pt-4">
+          {!confirmDelete ? (
+            <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete my account</Button>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Are you sure?</span>
+              <Button variant="danger" onClick={remove}>Yes, delete everything</Button>
+              <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            </div>
+          )}
+        </div>
       </Card>
     </div>
   );

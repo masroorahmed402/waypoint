@@ -17,33 +17,33 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-paper">
       {/* nav */}
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
         <span className="font-display text-xl font-semibold text-ink">{APP_NAME}</span>
         <div className="flex items-center gap-3 text-sm">
           <Link href="/login" className="text-slate-600 hover:text-ink">Log in</Link>
-          <Link href="/register" className="rounded-lg bg-ink px-4 py-2 text-white hover:bg-ink-700">Get started</Link>
+          <Link href="/register" className="rounded-lg bg-ink px-4 py-2 text-white transition hover:bg-ink-700">Get started</Link>
         </div>
       </header>
 
       {/* hero */}
-      <section className="mx-auto max-w-3xl px-6 pt-16 pb-20 text-center">
-        <p className="mb-4 inline-block rounded-full bg-beacon/15 px-3 py-1 text-xs font-medium text-beacon-600">
-          For international students
+      <section className="mx-auto max-w-3xl px-6 pb-24 pt-20 text-center">
+        <p className="mb-5 inline-block rounded-full bg-beacon/15 px-3 py-1 text-xs font-semibold tracking-wide text-beacon-600">
+          FOR INTERNATIONAL STUDENTS
         </p>
-        <h1 className="font-display text-5xl font-semibold leading-tight text-ink sm:text-6xl">
+        <h1 className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-6xl">
           Never miss an<br />immigration deadline.
         </h1>
-        <p className="mx-auto mt-6 max-w-xl text-lg text-slate-600">
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
           Upload your I-20 and {APP_NAME} builds your personal timeline — OPT windows, travel
           signatures, grace periods — then emails you before every deadline. Your documents and
           job search, all in one place.
         </p>
 
-        <div className="mx-auto mt-8 flex max-w-md flex-col gap-2 sm:flex-row">
+        <div className="mx-auto mt-10 flex max-w-md flex-col gap-2 sm:flex-row">
           {state === 'done' ? (
-            <div className="w-full rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
+            <div className="w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
               You&apos;re on the list — we&apos;ll be in touch. In the meantime, you can{' '}
               <Link href="/register" className="font-medium underline">create your account now</Link>.
             </div>
@@ -53,10 +53,10 @@ export default function Home() {
                 type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && submit()}
                 placeholder="you@university.edu"
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10"
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm shadow-sm outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/10"
               />
               <button onClick={submit} disabled={state === 'busy'}
-                className="whitespace-nowrap rounded-lg bg-beacon px-5 py-3 text-sm font-semibold text-ink hover:bg-beacon-600 disabled:opacity-50">
+                className="whitespace-nowrap rounded-xl bg-beacon px-6 py-3.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-beacon-600 disabled:opacity-50">
                 {state === 'busy' ? 'Joining…' : 'Join the waitlist'}
               </button>
             </>
@@ -66,32 +66,55 @@ export default function Home() {
         <p className="mt-3 text-xs text-slate-400">Free to start. No credit card.</p>
       </section>
 
+      {/* social proof */}
+      <section className="border-y border-slate-200 bg-white py-10">
+        <div className="mx-auto max-w-4xl px-6">
+          <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Built for students navigating F-1, OPT, and CPT
+          </p>
+          <div className="mt-6 grid grid-cols-3 gap-6 text-center sm:gap-10">
+            {[
+              { stat: '4', label: 'reminder checkpoints per deadline' },
+              { stat: '500MB', label: 'secure document storage' },
+              { stat: '$0', label: 'to get started' },
+            ].map((s) => (
+              <div key={s.label}>
+                <div className="font-display text-3xl font-semibold text-ink">{s.stat}</div>
+                <div className="mt-1 text-xs leading-snug text-slate-500">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* three promises */}
-      <section className="border-t border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-5xl gap-8 px-6 py-16 sm:grid-cols-3">
+      <section className="bg-paper">
+        <div className="mx-auto grid max-w-5xl gap-10 px-6 py-20 sm:grid-cols-3">
           {[
             { t: 'See your whole road', d: 'One I-20 upload becomes a dated timeline from arrival to OPT — no spreadsheets, no guessing.' },
             { t: 'Get warned in time', d: 'Automatic email reminders at 90, 30, 7 and 1 day before each deadline. The dates that can’t be undone, handled.' },
             { t: 'Everything in one place', d: 'Your documents stored securely and your job applications tracked — organized around your visa clock.' },
           ].map((f) => (
-            <div key={f.t}>
+            <div key={f.t} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
               <h3 className="font-display text-lg font-semibold text-ink">{f.t}</h3>
-              <p className="mt-2 text-sm text-slate-600">{f.d}</p>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">{f.d}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* footer */}
-      <footer className="mx-auto max-w-5xl px-6 py-10 text-center">
-        <p className="text-xs text-slate-400">
-          {APP_NAME} is informational only and not a substitute for legal advice. Always confirm
-          immigration matters with your Designated School Official (DSO).
-        </p>
-        <div className="mt-3 flex justify-center gap-4 text-xs text-slate-500">
-          <Link href="/privacy" className="hover:text-ink">Privacy</Link>
-          <Link href="/terms" className="hover:text-ink">Terms</Link>
-          <Link href="/login" className="hover:text-ink">Log in</Link>
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto max-w-5xl px-6 py-10 text-center">
+          <p className="text-xs text-slate-400">
+            {APP_NAME} is informational only and not a substitute for legal advice. Always confirm
+            immigration matters with your Designated School Official (DSO).
+          </p>
+          <div className="mt-3 flex justify-center gap-4 text-xs text-slate-500">
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <Link href="/terms" className="hover:text-ink">Terms</Link>
+            <Link href="/login" className="hover:text-ink">Log in</Link>
+          </div>
         </div>
       </footer>
     </div>

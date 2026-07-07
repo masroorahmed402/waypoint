@@ -37,34 +37,49 @@ function Inner() {
     return <p className="text-sm text-slate-500">Complete onboarding on the dashboard first.</p>;
   }
 
-  const dotColor = (s: Milestone['status']) =>
-    s === 'PAST' ? 'bg-slate-300' : s === 'CURRENT' ? 'bg-ink ring-4 ring-ink/10' : 'bg-white border-2 border-slate-300';
+  const dotStyle = (s: Milestone['status']) =>
+    s === 'PAST'
+      ? 'bg-slate-300 border-slate-300'
+      : s === 'CURRENT'
+      ? 'bg-ink border-ink ring-[6px] ring-ink/10'
+      : 'bg-white border-slate-300';
+
+  const labelStyle = (s: Milestone['status']) =>
+    s === 'PAST' ? 'text-slate-400' : s === 'CURRENT' ? 'text-ink' : 'text-slate-700';
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Immigration</h1>
-        {tl.data && <span className="text-xs text-slate-400">rules {tl.data.ruleVersion}</span>}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-semibold text-ink">Immigration</h1>
+        <div className="flex items-center gap-3">
+          {tl.data && <span className="text-xs text-slate-400">rules {tl.data.ruleVersion}</span>}
+        </div>
       </div>
       <Disclaimer />
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
         <Card>
-          <h2 className="font-semibold">Your F-1 journey</h2>
-          <ol className="mt-5 space-y-5">
-            {tl.data?.milestones.map((m) => (
-              <li key={m.key} className="relative flex gap-4">
-                <span className={`mt-1 h-3 w-3 shrink-0 rounded-full ${dotColor(m.status)}`} />
-                <div>
+          <h2 className="font-display font-semibold text-ink">Your F-1 journey</h2>
+          <ol className="mt-6 space-y-0">
+            {tl.data?.milestones.map((m, i) => (
+              <li key={m.key} className="relative flex gap-5 pb-8 last:pb-0">
+                {i < (tl.data?.milestones.length ?? 0) - 1 && (
+                  <span className="absolute left-[9px] top-5 h-full w-px bg-slate-200" />
+                )}
+                <span className={`relative mt-1 h-5 w-5 shrink-0 rounded-full border-2 ${dotStyle(m.status)}`} />
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="font-medium">{m.label}</span>
+                    <span className={`font-semibold ${labelStyle(m.status)}`}>{m.label}</span>
+                    {m.status === 'CURRENT' && (
+                      <span className="rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink">now</span>
+                    )}
                     <span className="text-sm text-slate-500">
                       {m.date ? fmt(m.date) : m.dateRange ? `${fmt(m.dateRange.start)} – ${fmt(m.dateRange.end)}` : ''}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-600">{m.explanation}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{m.explanation}</p>
                   {m.sourceUrl && (
-                    <a href={m.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-xs text-ink">
+                    <a href={m.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-xs font-medium text-ink hover:underline">
                       Official source ↗
                     </a>
                   )}
@@ -75,23 +90,30 @@ function Inner() {
         </Card>
 
         <Card>
-          <h2 className="font-semibold">Deadlines</h2>
+          <h2 className="font-display font-semibold text-ink">Deadlines</h2>
           <div className="mt-4 space-y-3">
             {dl.data?.length === 0 && <p className="text-sm text-slate-400">No deadlines yet.</p>}
             {dl.data?.map((d) => {
               const n = daysUntil(d.dueDate);
+              const urgent = n >= 0 && n <= 7;
+              const soon = n > 7 && n <= 30;
               return (
-                <div key={d.id} className="rounded-lg border border-slate-100 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{d.title}</span>
-                    <span className={`text-xs font-medium ${n < 0 ? 'text-slate-400' : n <= 7 ? 'text-red-600' : n <= 30 ? 'text-amber-600' : 'text-slate-500'}`}>
-                      {n < 0 ? 'passed' : `in ${n}d`}
+                <div
+                  key={d.id}
+                  className={`rounded-xl border p-3.5 shadow-sm transition ${
+                    urgent ? 'border-red-200 bg-red-50/50' : soon ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-ink">{d.title}</span>
+                    <span className={`shrink-0 text-xs font-semibold ${n < 0 ? 'text-slate-400' : urgent ? 'text-red-600' : soon ? 'text-amber-600' : 'text-slate-500'}`}>
+                      {n < 0 ? 'passed' : n === 0 ? 'today' : `in ${n}d`}
                     </span>
                   </div>
                   <div className="mt-0.5 text-xs text-slate-500">{fmt(d.dueDate)}</div>
-                  {d.notes && <p className="mt-1 text-xs text-slate-500">{d.notes}</p>}
+                  {d.notes && <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{d.notes}</p>}
                   {!d.dismissedAt && (
-                    <div className="mt-2">
+                    <div className="mt-2.5">
                       <Button
                         variant="ghost"
                         className="px-2 py-1 text-xs"
