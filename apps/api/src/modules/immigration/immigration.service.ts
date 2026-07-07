@@ -49,6 +49,14 @@ export class ImmigrationService {
         update: { dueDate: g.dueDate, title: g.title, notes: g.notes, ruleVersion: RULE_VERSION },
       });
     }
+
+    await this.prisma.deadline.deleteMany({
+      where: {
+        userId,
+        dedupeKey: 'travel_signature',
+        source: 'SYSTEM_GENERATED',
+      },
+    });
   }
 
   /** Called by DocumentsService when a document with expiryDate is confirmed. */

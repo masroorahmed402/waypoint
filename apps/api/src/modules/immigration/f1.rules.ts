@@ -157,15 +157,6 @@ export function computeSystemDeadlines(p: ProfileDates): GeneratedDeadline[] {
       dueDate: graceEnd,
       notes: 'Depart, transfer, or change status by this date if not on OPT.',
     },
-    {
-      dedupeKey: 'travel_signature',
-      type: 'TRAVEL_SIGNATURE',
-      title: 'Check I-20 travel signature before any trip',
-      // Annual reminder anchored to program start anniversary within program:
-      dueDate: nextAnniversary(p.programStartDate, new Date(), p.programEndDate),
-      notes:
-        'I-20 travel signatures are valid 12 months (6 months on OPT). Get a fresh signature from your DSO before international travel.',
-    },
   ];
 }
 
@@ -174,10 +165,4 @@ function status(d: Date, now: Date): MilestoneStatus {
   if (diff < -14 * DAY) return 'PAST';
   if (diff > 14 * DAY) return 'UPCOMING';
   return 'CURRENT';
-}
-
-function nextAnniversary(anchor: Date, now: Date, cap: Date): Date {
-  const d = new Date(anchor);
-  while (d < now) d.setFullYear(d.getFullYear() + 1);
-  return d > cap ? cap : d;
 }
