@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: iso
+          POSTGRES_PASSWORD: iso_dev_password
+          POSTGRES_DB: iso_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U iso" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://iso:iso_dev_password@localhost:5432/iso_test?schema=public
+      JWT_ACCESS_SECRET: test-secret-not-for-production-use-only
+      FIELD_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @iso/api prisma:generate
+      - run: pnpm --filter @iso/api prisma migrate deploy || pnpm --filter @iso/api exec prisma db push
+      - run: pnpm --filter @iso/api test
+      - run: pnpm --filter @iso/api build
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @iso/web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4000/api/v1
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high || true

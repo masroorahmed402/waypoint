@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <rect width="1200" height="630" fill="#faf8f3"/>
+  <circle cx="140" cy="315" r="56" fill="#16263f"/>
+  <circle cx="140" cy="315" r="56" fill="none" stroke="#e6a53a" stroke-width="5"/>
+  <circle cx="140" cy="315" r="16" fill="#e6a53a"/>
+  <text x="230" y="300" font-family="Georgia, serif" font-size="72" font-weight="600" fill="#16263f">Waypoint</text>
+  <text x="230" y="360" font-family="Arial, sans-serif" font-size="30" fill="#16263f">Never miss an immigration deadline</text>
+</svg>

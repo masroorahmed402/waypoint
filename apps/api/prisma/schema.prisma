@@ -1,0 +1,353 @@
+// Waypoint — canonical data model. See docs/DATABASE.md for rationale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Identity ────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String? // null for OAuth-only accounts
+  firstName    String
+  lastName     String
+  role         Role      @default(STUDENT)
+  emailVerifiedAt DateTime?
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  profile       StudentProfile?
+  oauthAccounts OAuthAccount[]
+  refreshTokens RefreshToken[]
+  deadlines     Deadline[]
+  documents     Document[]
+  applications  Application[]
+  tasks         Task[]
+  aiConversations AiConversation[]
+}
+
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String // "google"
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique // sha256 of the opaque token
+  familyId  String // rotation family; reuse detection revokes whole family
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([userId])
+}
+
+enum VisaType {
+  F1
+  J1
+  M1
+  OTHER
+}
+
+enum DegreeLevel {
+  BACHELORS
+  MASTERS
+  PHD
+  OTHER
+}
+
+model StudentProfile {
+  id               String      @id @default(cuid())
+  userId           String      @unique
+  universityId     String?
+  universityName   String? // free-text fallback if not in reference table
+  degreeLevel      DegreeLevel
+  major            String
+  visaType         VisaType    @default(F1)
+  programStartDate DateTime
+  programEndDate   DateTime
+  usEntryDate      DateTime?
+  sevisIdEncrypted String? // AES-256-GCM, app-layer
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  university University? @relation(fields: [universityId], references: [id])
+}
+
+// ─── Reference ───────────────────────────────────────────────────────────────
+
+model University {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  city      String
+  state     String
+  issOfficeUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profiles StudentProfile[]
+}
+
+// ─── Immigration ─────────────────────────────────────────────────────────────
+
+enum DeadlineSource {
+  SYSTEM_GENERATED
+  USER_CREATED
+  DOCUMENT_EXPIRY
+}
+
+enum DeadlineType {
+  PASSPORT_EXPIRY
+  VISA_EXPIRY
+  I20_EXPIRY
+  EAD_EXPIRY
+  OPT_WINDOW_OPEN
+  OPT_FILING_DEADLINE
+  TRAVEL_SIGNATURE
+  GRACE_PERIOD_END
+  INSURANCE_RENEWAL
+  LEASE_RENEWAL
+  TAX_FILING
+  CUSTOM
+}
+
+model Deadline {
+  id          String         @id @default(cuid())
+  userId      String
+  source      DeadlineSource
+  type        DeadlineType
+  title       String
+  notes       String?
+  dueDate     DateTime
+  ruleVersion String? // which rules version generated this (ADR-008)
+  dedupeKey   String? // user+type+basis; lets recompute upsert not duplicate
+  documentId  String? // when source = DOCUMENT_EXPIRY
+  dismissedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document         Document?         @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  notificationLogs NotificationLog[]
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, dueDate])
+}
+
+enum ReminderCheckpoint {
+  D90
+  D30
+  D7
+  D1
+}
+
+model NotificationLog {
+  id         String             @id @default(cuid())
+  deadlineId String
+  checkpoint ReminderCheckpoint
+  channel    String             @default("email")
+  sentAt     DateTime           @default(now())
+
+  deadline Deadline @relation(fields: [deadlineId], references: [id], onDelete: Cascade)
+
+  @@unique([deadlineId, checkpoint]) // idempotent sends
+}
+
+// ─── Documents ───────────────────────────────────────────────────────────────
+
+enum DocumentType {
+  PASSPORT
+  VISA_STAMP
+  I20
+  I94
+  EAD
+  DRIVERS_LICENSE
+  STATE_ID
+  INSURANCE
+  LEASE
+  TAX
+  OFFER_LETTER
+  TRANSCRIPT
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING // row created, upload not confirmed
+  ACTIVE
+  DELETED // soft-deleted; purge job removes bytes after 30 days
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  userId        String
+  type          DocumentType
+  status        DocumentStatus @default(PENDING)
+  fileName      String
+  contentType   String
+  sizeBytes     Int
+  storageKey    String         @unique
+  issueDate     DateTime?
+  expiryDate    DateTime? // feeds Deadline generation
+  extractedText String? // Phase 2 OCR
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deadlines Deadline[]
+
+  @@index([userId, type])
+}
+
+// ─── Career ──────────────────────────────────────────────────────────────────
+
+model Company {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String?  @unique
+  website   String?
+  // Phase 2 sponsorship columns (populated by LCA ingestion):
+  h1bPetitionsLastYear Int?
+  sponsorsInternational Boolean?
+  everify   Boolean?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+
+  @@index([name])
+}
+
+enum ApplicationStage {
+  SAVED
+  APPLIED
+  OA
+  INTERVIEW
+  OFFER
+  REJECTED
+  WITHDRAWN
+}
+
+enum TriState {
+  YES
+  NO
+  UNKNOWN
+}
+
+model Application {
+  id                   String           @id @default(cuid())
+  userId               String
+  companyId            String?
+  companyName          String // always set; denormalized so adding is never blocked
+  roleTitle            String
+  url                  String?
+  stage                ApplicationStage @default(SAVED)
+  sponsorshipConfirmed TriState         @default(UNKNOWN)
+  salaryMin            Int?
+  salaryMax            Int?
+  location             String?
+  notes                String?
+  appliedAt            DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company Company?           @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  events  ApplicationEvent[]
+
+  @@index([userId, stage])
+}
+
+model ApplicationEvent {
+  id            String           @id @default(cuid())
+  applicationId String
+  fromStage     ApplicationStage?
+  toStage       ApplicationStage
+  note          String?
+  createdAt     DateTime         @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId, createdAt])
+}
+
+// ─── Phase 2 (schema present, features not built — see DATABASE.md) ─────────
+
+model Task {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  dueDate   DateTime?
+  doneAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, doneAt])
+}
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AiMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model AiMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           String // "user" | "assistant"
+  content        String
+  model          String?
+  inputTokens    Int?
+  outputTokens   Int?
+  createdAt      DateTime @default(now())
+
+  conversation AiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// ─── Marketing ───────────────────────────────────────────────────────────────
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String? // where they signed up from
+  createdAt DateTime @default(now())
+}
