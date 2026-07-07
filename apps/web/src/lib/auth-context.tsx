@@ -19,6 +19,7 @@ export interface Me {
     usEntryDate: string | null;
     university: { id: string; name: string; slug: string } | null;
     universityName: string | null;
+    stemEligible: boolean;
   };
 }
 

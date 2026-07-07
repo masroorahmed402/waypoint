@@ -47,6 +47,7 @@ export class UsersService {
         programStartDate: start,
         programEndDate: end,
         usEntryDate: dto.usEntryDate ? new Date(dto.usEntryDate) : null,
+        stemEligible: dto.stemEligible ?? false,
       },
       update: {
         universityId: dto.universityId ?? null,
@@ -57,6 +58,7 @@ export class UsersService {
         programStartDate: start,
         programEndDate: end,
         usEntryDate: dto.usEntryDate ? new Date(dto.usEntryDate) : null,
+        stemEligible: dto.stemEligible ?? false,
       },
     });
 

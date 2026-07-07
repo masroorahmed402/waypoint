@@ -18,6 +18,7 @@ export class ImmigrationService {
         programStartDate: profile.programStartDate,
         programEndDate: profile.programEndDate,
         usEntryDate: profile.usEntryDate,
+        stemEligible: profile.stemEligible,
       }),
     };
   }
@@ -31,6 +32,7 @@ export class ImmigrationService {
       programStartDate: profile.programStartDate,
       programEndDate: profile.programEndDate,
       usEntryDate: profile.usEntryDate,
+      stemEligible: profile.stemEligible,
     });
 
     for (const g of generated) {
@@ -57,6 +59,16 @@ export class ImmigrationService {
         source: DeadlineSource.SYSTEM_GENERATED,
       },
     });
+
+    if (!profile.stemEligible) {
+      await this.prisma.deadline.deleteMany({
+        where: {
+          userId,
+          dedupeKey: { in: ['stem_opt_report_12mo', 'stem_opt_extension_end'] },
+          source: DeadlineSource.SYSTEM_GENERATED,
+        },
+      });
+    }
   }
 
   /** Called by DocumentsService when a document with expiryDate is confirmed. */

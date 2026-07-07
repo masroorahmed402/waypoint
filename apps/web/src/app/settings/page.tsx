@@ -28,6 +28,7 @@ function Inner() {
     programStartDate: toDateInput(profile?.programStartDate),
     programEndDate: toDateInput(profile?.programEndDate),
     usEntryDate: toDateInput(profile?.usEntryDate),
+    stemEligible: profile?.stemEligible ?? false,
   });
   const setP = (k: string) => (e: any) => setPf({ ...pf, [k]: e.target.value });
   const [profileSaved, setProfileSaved] = useState(false);
@@ -56,6 +57,7 @@ function Inner() {
           programStartDate: new Date(pf.programStartDate).toISOString(),
           programEndDate: new Date(pf.programEndDate).toISOString(),
           usEntryDate: pf.usEntryDate ? new Date(pf.usEntryDate).toISOString() : undefined,
+          stemEligible: pf.stemEligible,
         }),
       });
       await refreshMe();
@@ -126,6 +128,15 @@ function Inner() {
             <div><Label>Program end</Label><Input type="date" value={pf.programEndDate} onChange={setP('programEndDate')} /></div>
           </div>
           <div><Label>U.S. entry date (optional)</Label><Input type="date" value={pf.usEntryDate} onChange={setP('usEntryDate')} /></div>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={pf.stemEligible}
+              onChange={(e) => setPf({ ...pf, stemEligible: e.target.checked })}
+              className="h-4 w-4 rounded border-slate-300 text-ink focus:ring-ink/20"
+            />
+            I have a STEM degree
+          </label>
           {profileError && <p className="text-sm text-red-600">{profileError}</p>}
           <div className="flex items-center gap-3">
             <Button onClick={saveProfile} disabled={profileBusy || !pf.major || !pf.programStartDate || !pf.programEndDate}>

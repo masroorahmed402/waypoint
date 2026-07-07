@@ -107,6 +107,7 @@ model StudentProfile {
   programStartDate DateTime
   programEndDate   DateTime
   usEntryDate      DateTime?
+  stemEligible     Boolean     @default(false)
   sevisIdEncrypted String? // AES-256-GCM, app-layer
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -150,6 +151,8 @@ enum DeadlineType {
   INSURANCE_RENEWAL
   LEASE_RENEWAL
   TAX_FILING
+  STEM_OPT_REPORT
+  STEM_OPT_EXTENSION_END
   CUSTOM
 }
 

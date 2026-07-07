@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsISO8601, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsEnum, IsISO8601, IsBoolean, MaxLength } from 'class-validator';
 import { DegreeLevel, VisaType } from '@prisma/client';
 
 export class UpdateMeDto {
@@ -15,4 +15,5 @@ export class UpsertProfileDto {
   @IsISO8601() programStartDate: string;
   @IsISO8601() programEndDate: string;
   @IsOptional() @IsISO8601() usEntryDate?: string;
+  @IsOptional() @IsBoolean() stemEligible?: boolean;
 }

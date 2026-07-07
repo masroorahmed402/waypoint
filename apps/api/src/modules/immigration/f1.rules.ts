@@ -15,6 +15,7 @@ export interface ProfileDates {
   programStartDate: Date;
   programEndDate: Date;
   usEntryDate?: Date | null;
+  stemEligible?: boolean;
 }
 
 export type MilestoneStatus = 'PAST' | 'CURRENT' | 'UPCOMING';
@@ -35,7 +36,9 @@ export interface GeneratedDeadline {
     | 'OPT_WINDOW_OPEN'
     | 'OPT_FILING_DEADLINE'
     | 'GRACE_PERIOD_END'
-    | 'TRAVEL_SIGNATURE';
+    | 'TRAVEL_SIGNATURE'
+    | 'STEM_OPT_REPORT'
+    | 'STEM_OPT_EXTENSION_END';
   title: string;
   dueDate: Date;
   notes: string;
@@ -43,6 +46,17 @@ export interface GeneratedDeadline {
 
 const DAY = 86_400_000;
 const addDays = (d: Date, n: number) => new Date(d.getTime() + n * DAY);
+const addMonths = (d: Date, n: number) => {
+  const copy = new Date(d);
+  copy.setMonth(copy.getMonth() + n);
+  return copy;
+};
+
+// Typical (informational) post-completion OPT authorization period — actual
+// start depends on USCIS processing of the I-765; ask your DSO for exact dates.
+const TYPICAL_OPT_MONTHS = 12;
+// STEM OPT extension length as configured for this rules version.
+const STEM_EXTENSION_MONTHS = 17;
 
 /** Full journey timeline, computed — never stored (see DATABASE.md). */
 export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] {
@@ -124,6 +138,40 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
     sourceUrl: 'https://studyinthestates.dhs.gov/2014/08/understanding-your-grace-period',
   });
 
+  if (p.stemEligible) {
+    const optTypicalEnd = addMonths(p.programEndDate, TYPICAL_OPT_MONTHS);
+    const stemWindowStart = addDays(optTypicalEnd, -90);
+    const stemExtensionEnd = addMonths(optTypicalEnd, STEM_EXTENSION_MONTHS);
+    const stemReport12mo = addMonths(optTypicalEnd, 12);
+
+    items.push({
+      key: 'stem_opt_window',
+      label: 'STEM OPT extension application window',
+      dateRange: { start: stemWindowStart, end: optTypicalEnd },
+      status: now < stemWindowStart ? 'UPCOMING' : now > optTypicalEnd ? 'PAST' : 'CURRENT',
+      explanation:
+        'You may file the STEM OPT extension (Form I-765) up to 90 days before your initial OPT authorization expires, and must file before it expires. Your DSO must recommend it in SEVIS first.',
+      sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
+    });
+    items.push({
+      key: 'stem_opt_report_12mo',
+      label: '12-month self-evaluation report due',
+      date: stemReport12mo,
+      status: status(stemReport12mo, now),
+      explanation:
+        'STEM OPT requires a validation report at the 12-month mark of the extension confirming your employment is still on track — submitted through your DSO.',
+      sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
+    });
+    items.push({
+      key: 'stem_opt_extension_end',
+      label: `${STEM_EXTENSION_MONTHS}-month STEM OPT extension ends`,
+      date: stemExtensionEnd,
+      status: status(stemExtensionEnd, now),
+      explanation: `If approved, your STEM OPT extension runs for ${STEM_EXTENSION_MONTHS} months after your initial OPT period ends.`,
+      sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
+    });
+  }
+
   return items;
 }
 
@@ -133,7 +181,7 @@ export function computeSystemDeadlines(p: ProfileDates): GeneratedDeadline[] {
   const optClose = addDays(p.programEndDate, 60);
   const graceEnd = addDays(p.programEndDate, 60);
 
-  return [
+  const deadlines: GeneratedDeadline[] = [
     {
       dedupeKey: 'opt_window_open',
       type: 'OPT_WINDOW_OPEN',
@@ -158,6 +206,31 @@ export function computeSystemDeadlines(p: ProfileDates): GeneratedDeadline[] {
       notes: 'Depart, transfer, or change status by this date if not on OPT.',
     },
   ];
+
+  if (p.stemEligible) {
+    const optTypicalEnd = addMonths(p.programEndDate, TYPICAL_OPT_MONTHS);
+    const stemExtensionEnd = addMonths(optTypicalEnd, STEM_EXTENSION_MONTHS);
+    const stemReport12mo = addMonths(optTypicalEnd, 12);
+
+    deadlines.push(
+      {
+        dedupeKey: 'stem_opt_report_12mo',
+        type: 'STEM_OPT_REPORT',
+        title: 'STEM OPT 12-month self-evaluation report due',
+        dueDate: stemReport12mo,
+        notes: 'Submit your validation report through your DSO confirming your STEM OPT employment is on track.',
+      },
+      {
+        dedupeKey: 'stem_opt_extension_end',
+        type: 'STEM_OPT_EXTENSION_END',
+        title: `${STEM_EXTENSION_MONTHS}-month STEM OPT extension ends`,
+        dueDate: stemExtensionEnd,
+        notes: 'Final day of your STEM OPT extension — confirm your next steps with your DSO well before this date.',
+      },
+    );
+  }
+
+  return deadlines;
 }
 
 function status(d: Date, now: Date): MilestoneStatus {
