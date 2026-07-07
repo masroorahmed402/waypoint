@@ -15,6 +15,15 @@ const STAGE_LABEL: Record<string, string> = {
   SAVED: 'Saved', APPLIED: 'Applied', OA: 'Online assessment', INTERVIEW: 'Interview', OFFER: 'Offer', REJECTED: 'Rejected',
 };
 
+const STAGE_COLOR: Record<string, { border: string; pill: string }> = {
+  SAVED: { border: 'border-l-slate-400', pill: 'bg-slate-100 text-slate-600' },
+  APPLIED: { border: 'border-l-blue-500', pill: 'bg-blue-100 text-blue-700' },
+  OA: { border: 'border-l-yellow-500', pill: 'bg-yellow-100 text-yellow-700' },
+  INTERVIEW: { border: 'border-l-purple-500', pill: 'bg-purple-100 text-purple-700' },
+  OFFER: { border: 'border-l-green-500', pill: 'bg-green-100 text-green-700' },
+  REJECTED: { border: 'border-l-red-500', pill: 'bg-red-100 text-red-700' },
+};
+
 export default function ApplicationsPage() {
   return <AppShell><Inner /></AppShell>;
 }
@@ -41,7 +50,7 @@ function Inner() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Applications</h1>
-        <Button onClick={() => setAdding(true)}>Add application</Button>
+        <Button variant="accent" onClick={() => setAdding(true)}>Add application</Button>
       </div>
 
       {adding && <AddForm onClose={() => setAdding(false)} onSaved={() => { setAdding(false); qc.invalidateQueries({ queryKey: ['applications'] }); }} />}
@@ -56,37 +65,54 @@ function Inner() {
           </svg>
           <p className="mt-3 font-medium">No applications yet</p>
           <p className="mt-1 text-sm text-slate-500">Add your first application and track it from saved to offer.</p>
-          <div className="mt-4"><Button onClick={() => setAdding(true)}>Add application</Button></div>
+          <div className="mt-4"><Button variant="accent" onClick={() => setAdding(true)}>Add application</Button></div>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-          {STAGES.map((s) => (
-            <div key={s} className="rounded-xl bg-slate-100/60 p-3">
-              <div className="mb-3 flex items-center justify-between px-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">{STAGE_LABEL[s]}</span>
-                <span className="text-xs text-slate-400">{byStage(s).length}</span>
-              </div>
-              <div className="space-y-2">
-                {byStage(s).map((a) => (
-                  <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="text-sm font-medium">{a.roleTitle}</div>
-                    <div className="text-xs text-slate-500">{a.companyName}</div>
-                    {a.sponsorshipConfirmed === 'YES' && (
-                      <span className="mt-1 inline-block rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">sponsors</span>
-                    )}
-                    <div className="mt-2 flex gap-1">
-                      {STAGES.filter((x) => x !== s).slice(0, 3).map((target) => (
-                        <button key={target} onClick={() => move.mutate({ id: a.id, stage: target })}
-                          className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 hover:bg-slate-200">
-                          → {STAGE_LABEL[target].split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {STAGES.map((s) => {
+            const color = STAGE_COLOR[s];
+            const items = byStage(s);
+            return (
+              <div key={s} className="w-[200px] shrink-0 rounded-xl bg-slate-50 p-3">
+                <div className={`mb-3 flex items-center justify-between border-l-4 px-2 py-1 ${color.border}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${color.pill}`}>
+                    {STAGE_LABEL[s]}
+                  </span>
+                  <span className="text-xs text-slate-400">{items.length}</span>
+                </div>
+                {items.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 py-8 text-center text-xs text-slate-400">
+                    No applications
                   </div>
-                ))}
+                ) : (
+                  <div className="space-y-2">
+                    {items.map((a) => (
+                      <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
+                        <div className="text-base font-bold text-ink">{a.roleTitle}</div>
+                        <div className="text-xs text-slate-500">{a.companyName}</div>
+                        {a.sponsorshipConfirmed === 'YES' && (
+                          <span className="mt-1.5 inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                            sponsors
+                          </span>
+                        )}
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {STAGES.filter((x) => x !== s).slice(0, 3).map((target) => (
+                            <button
+                              key={target}
+                              onClick={() => move.mutate({ id: a.id, stage: target })}
+                              className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-100 hover:text-slate-900"
+                            >
+                              → {STAGE_LABEL[target].split(' ')[0]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
