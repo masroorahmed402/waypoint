@@ -254,6 +254,7 @@ model Company {
   // Phase 2 sponsorship columns (populated by LCA ingestion):
   h1bPetitionsLastYear Int?
   sponsorsInternational Boolean?
+  sponsorsH1b Boolean?
   everify   Boolean?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

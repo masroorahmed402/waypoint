@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode } fr
 import { CareerService } from './career.service';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { CreateApplicationDto, UpdateApplicationDto } from './dto/application.dto';
+import { UpsertCompanyDto } from './dto/company.dto';
 import { ApplicationStage } from '@prisma/client';
 
 @Controller('career')
@@ -41,5 +42,10 @@ export class CareerController {
   @Get('companies')
   companies(@Query('query') query = '') {
     return this.svc.searchCompanies(query);
+  }
+
+  @Post('companies')
+  upsertCompany(@Body() dto: UpsertCompanyDto) {
+    return this.svc.upsertCompanyByName(dto);
   }
 }

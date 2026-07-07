@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateApplicationDto, UpdateApplicationDto } from './dto/application.dto';
+import { UpsertCompanyDto } from './dto/company.dto';
 import { ApplicationStage } from '@prisma/client';
 
 @Injectable()
@@ -14,7 +15,7 @@ export class CareerService {
       orderBy: { updatedAt: 'desc' },
       take: take + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      include: { company: { select: { id: true, name: true, domain: true } } },
+      include: { company: { select: { id: true, name: true, domain: true, sponsorsH1b: true } } },
     });
     const hasMore = rows.length > take;
     return { data: hasMore ? rows.slice(0, take) : rows, nextCursor: hasMore ? rows[take - 1].id : null };
@@ -86,7 +87,24 @@ export class CareerService {
     return this.prisma.company.findMany({
       where: { name: { contains: query, mode: 'insensitive' } },
       take: 10,
-      select: { id: true, name: true, domain: true, sponsorsInternational: true },
+      select: { id: true, name: true, domain: true, sponsorsInternational: true, sponsorsH1b: true },
+    });
+  }
+
+  /** Find-or-create by case-insensitive name; updates sponsorsH1b when provided. */
+  async upsertCompanyByName(dto: UpsertCompanyDto) {
+    const existing = await this.prisma.company.findFirst({
+      where: { name: { equals: dto.name, mode: 'insensitive' } },
+    });
+    if (existing) {
+      if (dto.sponsorsH1b === undefined) return existing;
+      return this.prisma.company.update({
+        where: { id: existing.id },
+        data: { sponsorsH1b: dto.sponsorsH1b },
+      });
+    }
+    return this.prisma.company.create({
+      data: { name: dto.name, sponsorsH1b: dto.sponsorsH1b },
     });
   }
 }

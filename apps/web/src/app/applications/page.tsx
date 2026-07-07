@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import AppShell from '@/components/app-shell';
@@ -9,7 +9,10 @@ interface App {
   id: string; companyName: string; roleTitle: string; stage: string;
   url?: string; location?: string; sponsorshipConfirmed: string; notes?: string;
   appliedAt?: string; salaryMin?: number; salaryMax?: number;
+  company?: { id: string; name: string; sponsorsH1b: boolean | null } | null;
 }
+
+interface CompanyResult { id: string; name: string; domain: string | null; sponsorsH1b: boolean | null }
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const fmtSalary = (min?: number, max?: number) => {
@@ -134,16 +137,25 @@ function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; on
     <div className="space-y-2">
       {items.map((a) => {
         const salary = fmtSalary(a.salaryMin, a.salaryMax);
+        const h1b = a.company?.sponsorsH1b;
         return (
           <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
             <div className="text-base font-bold text-ink">{a.roleTitle}</div>
             <div className="text-xs text-slate-500">{a.companyName}</div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {a.sponsorshipConfirmed === 'YES' && (
+              {h1b === true ? (
                 <span className="inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                  sponsors
+                  Sponsors
                 </span>
-              )}
+              ) : h1b === false ? (
+                <span className="inline-block rounded bg-red-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                  No sponsorship
+                </span>
+              ) : a.sponsorshipConfirmed === 'YES' ? (
+                <span className="inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                  Sponsors
+                </span>
+              ) : null}
               {salary && (
                 <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
                   {salary}
@@ -180,16 +192,37 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
     companyName: '', roleTitle: '', url: '', location: '', sponsorshipConfirmed: 'UNKNOWN',
     salaryMin: '', salaryMax: '', notes: '',
   });
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
+  const [newCompanySponsorsH1b, setNewCompanySponsorsH1b] = useState<string>('UNKNOWN');
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+
+  function onCompanyNameChange(name: string) {
+    setF({ ...f, companyName: name });
+    setSelectedCompanyId(null); // typing invalidates a prior selection
+  }
+
+  function onSelectCompany(c: CompanyResult) {
+    setF({ ...f, companyName: c.name });
+    setSelectedCompanyId(c.id);
+  }
 
   async function save() {
     setBusy(true);
     try {
+      let companyId = selectedCompanyId ?? undefined;
+      if (!companyId && f.companyName.trim()) {
+        const h1b = newCompanySponsorsH1b === 'UNKNOWN' ? undefined : newCompanySponsorsH1b === 'YES';
+        const company = await api<{ id: string }>('/career/companies', {
+          method: 'POST',
+          body: JSON.stringify({ name: f.companyName.trim(), sponsorsH1b: h1b }),
+        });
+        companyId = company.id;
+      }
       await api('/career/applications', {
         method: 'POST',
         body: JSON.stringify({
-          companyName: f.companyName, roleTitle: f.roleTitle,
+          companyName: f.companyName, companyId, roleTitle: f.roleTitle,
           url: f.url || undefined, location: f.location || undefined,
           sponsorshipConfirmed: f.sponsorshipConfirmed,
           salaryMin: f.salaryMin ? Number(f.salaryMin) : undefined,
@@ -204,7 +237,10 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
   return (
     <Card>
       <div className="grid gap-3 md:grid-cols-2">
-        <div><Label>Company</Label><Input value={f.companyName} onChange={set('companyName')} /></div>
+        <div>
+          <Label>Company</Label>
+          <CompanyTypeahead value={f.companyName} onChange={onCompanyNameChange} onSelect={onSelectCompany} />
+        </div>
         <div><Label>Role</Label><Input value={f.roleTitle} onChange={set('roleTitle')} /></div>
         <div><Label>Job URL (optional)</Label><Input value={f.url} onChange={set('url')} /></div>
         <div><Label>Location (optional)</Label><Input value={f.location} onChange={set('location')} /></div>
@@ -218,6 +254,16 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
             <option value="NO">No</option>
           </select>
         </div>
+        {!selectedCompanyId && f.companyName.trim() && (
+          <div>
+            <Label>New company — sponsors H-1B?</Label>
+            <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={newCompanySponsorsH1b} onChange={(e) => setNewCompanySponsorsH1b(e.target.value)}>
+              <option value="UNKNOWN">Unknown</option>
+              <option value="YES">Yes</option>
+              <option value="NO">No</option>
+            </select>
+          </div>
+        )}
         <div className="md:col-span-2"><Label>Notes (optional)</Label><Input value={f.notes} onChange={set('notes')} /></div>
       </div>
       <div className="mt-4 flex gap-2">
@@ -225,5 +271,53 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
         <Button variant="ghost" onClick={onClose}>Cancel</Button>
       </div>
     </Card>
+  );
+}
+
+function CompanyTypeahead({ value, onChange, onSelect }: {
+  value: string;
+  onChange: (name: string) => void;
+  onSelect: (c: CompanyResult) => void;
+}) {
+  const [results, setResults] = useState<CompanyResult[]>([]);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!value.trim()) { setResults([]); return; }
+    const t = setTimeout(() => {
+      api<CompanyResult[]>(`/career/companies?query=${encodeURIComponent(value.trim())}`)
+        .then((r) => setResults(r))
+        .catch(() => setResults([]));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [value]);
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder="e.g. Acme Corp"
+      />
+      {open && results.length > 0 && (
+        <div className="absolute z-10 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg">
+          {results.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onMouseDown={() => onSelect(c)}
+              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-slate-50"
+            >
+              <span>{c.name}</span>
+              {c.sponsorsH1b === true && <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-medium text-white">Sponsors</span>}
+              {c.sponsorsH1b === false && <span className="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-medium text-white">No sponsorship</span>}
+              {c.sponsorsH1b == null && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">Unknown</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
