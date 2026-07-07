@@ -43,15 +43,36 @@ export class PdfI20Extractor implements DocumentExtractor {
     const programOfStudy = this.labelValue(flat, ['Major 1', 'Program of Study', 'Major']);
     if (programOfStudy) found.push('programOfStudy');
 
-    const programStartDate = this.dateAfterLabel(flat, [
-      'Program Start Date', 'Start of Classes', 'Program Start', 'Studies Begin',
+    let programStartDate: string | null = null;
+    let programEndDate: string | null = null;
+
+    // Real I-20s often list a single combined "PROGRAM START/END DATE" field
+    // rather than two separate ones — try that first.
+    const combined = this.labelValue(flat, [
+      'PROGRAM START/END DATE', 'Program Start/End Date', 'Program Start / End Date',
     ]);
-    if (programStartDate) found.push('programStartDate');
-    const programEndDate = this.dateAfterLabel(flat, [
-      'Program End Date', 'End of Program', 'Program of Study End Date',
-      'End of Studies', 'Complete Studies By', 'Program End',
-    ]);
-    if (programEndDate) found.push('programEndDate');
+    if (combined) {
+      const dates = this.extractAllDates(combined);
+      if (dates.length >= 2) {
+        programStartDate = dates[0];
+        programEndDate = dates[1];
+        if (programStartDate) found.push('programStartDate');
+        if (programEndDate) found.push('programEndDate');
+      } else if (dates.length === 1) {
+        programStartDate = dates[0];
+        if (programStartDate) found.push('programStartDate');
+      }
+    }
+
+    // Fall back to separate labels if combined didn't work.
+    if (!programStartDate) {
+      const fallback = this.dateAfterLabel(flat, ['Program Start Date', 'Start of Classes', 'Program Start']);
+      if (fallback) { programStartDate = fallback; found.push('programStartDate'); }
+    }
+    if (!programEndDate) {
+      const fallback = this.dateAfterLabel(flat, ['Program End Date', 'End of Program', 'Complete Studies By']);
+      if (fallback) { programEndDate = fallback; found.push('programEndDate'); }
+    }
 
     const degreeLevel = this.degreeLevel(flat);
     if (degreeLevel) found.push('degreeLevel');
@@ -127,6 +148,22 @@ export class PdfI20Extractor implements DocumentExtractor {
       if (iso) return iso;
     }
     return null;
+  }
+
+  /** Finds every date in a string and returns them as ISO strings, in the order they appear. */
+  private extractAllDates(text: string): string[] {
+    const re = /\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b|\b(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{4})\b/g;
+    const dates: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      if (m[1]) {
+        dates.push(`${m[3]}-${pad(m[1])}-${pad(m[2])}`);
+      } else if (m[5]) {
+        const mon = MONTHS[m[5].slice(0, 3).toLowerCase()];
+        if (mon) dates.push(`${m[6]}-${pad(String(mon))}-${pad(m[4])}`);
+      }
+    }
+    return dates;
   }
 
   private firstDateToIso(s: string): string | null {

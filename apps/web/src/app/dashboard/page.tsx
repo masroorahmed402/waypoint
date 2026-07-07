@@ -65,7 +65,9 @@ function DashboardInner() {
         <div>
           <h1 className="font-display text-3xl font-semibold text-ink">Hi {me!.firstName}</h1>
           <p className="mt-1 text-sm text-slate-500">
-            {me!.profile!.major} · {me!.profile!.university?.name ?? me!.profile!.universityName}
+            {me!.profile!.major}
+            {(me!.profile!.university?.name ?? me!.profile!.universityName) &&
+              ` · ${me!.profile!.university?.name ?? me!.profile!.universityName}`}
           </p>
         </div>
         {doneCount < setupSteps.length && (
