@@ -135,7 +135,7 @@ function Inner() {
               onChange={(e) => setPf({ ...pf, stemEligible: e.target.checked })}
               className="h-4 w-4 rounded border-slate-300 text-ink focus:ring-ink/20"
             />
-            I have a STEM degree
+            I have a STEM-designated degree (eligible for 24-month OPT extension)
           </label>
           {profileError && <p className="text-sm text-red-600">{profileError}</p>}
           <div className="flex items-center gap-3">

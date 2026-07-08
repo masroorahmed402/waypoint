@@ -110,6 +110,7 @@ model StudentProfile {
   programEndDate   DateTime
   usEntryDate      DateTime?
   stemEligible     Boolean     @default(false)
+  cipCode          String? // from I-20 MAJOR 1, e.g. "11.0201" — drives stemEligible auto-detection
   sevisIdEncrypted String? // AES-256-GCM, app-layer
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt

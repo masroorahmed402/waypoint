@@ -20,6 +20,10 @@ export interface I20Extract {
   schoolOfficialName: string | null;
   schoolOfficialTitle: string | null;
   programOfStudy: string | null;
+  /** CIP code from MAJOR 1 (e.g. "11.0201"), if found. */
+  cipCode: string | null;
+  /** true if cipCode's 2-digit prefix is on DHS's published STEM OPT extension list. */
+  isStemDegree: boolean;
   /** Mapped to the app's DegreeLevel enum where possible. */
   degreeLevel: 'BACHELORS' | 'MASTERS' | 'PHD' | 'OTHER' | null;
   /** ISO 8601 (yyyy-mm-dd) or null. */

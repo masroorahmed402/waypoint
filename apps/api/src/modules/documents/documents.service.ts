@@ -37,7 +37,7 @@ export class DocumentsService {
         hasTextLayer: false,
         sevisId: null, surname: null, givenName: null, schoolName: null,
         schoolOfficialName: null, schoolOfficialTitle: null,
-        programOfStudy: null, degreeLevel: null, programStartDate: null,
+        programOfStudy: null, cipCode: null, isStemDegree: false, degreeLevel: null, programStartDate: null,
         programEndDate: null, startOfClasses: null, issueDate: null,
         currentSessionStart: null, currentSessionEnd: null,
         authorizations: [], foundFields: [],
@@ -109,6 +109,18 @@ export class DocumentsService {
           where: { userId },
           data: { sevisIdEncrypted: encryptField(result.sevisId, this.config.fieldEncryptionKey) },
         });
+      }
+
+      if (result.isStemDegree) {
+        // Only recompute deadlines if this actually flips the flag — avoids a
+        // needless recompute call on every re-extraction of an already-STEM profile.
+        const flipped = await this.prisma.studentProfile.updateMany({
+          where: { userId, stemEligible: false },
+          data: { stemEligible: true, cipCode: result.cipCode },
+        });
+        if (flipped.count > 0) await this.immigration.recomputeSystemDeadlines(userId);
+      } else if (result.cipCode) {
+        await this.prisma.studentProfile.updateMany({ where: { userId }, data: { cipCode: result.cipCode } });
       }
     } catch {
       // Extraction extras are a bonus, not the primary flow — never fail the confirm/extract step over them.

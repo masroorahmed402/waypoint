@@ -17,6 +17,8 @@ export default function Onboarding() {
   const [i20Notice, setI20Notice] = useState('');
   const [staleWarning, setStaleWarning] = useState('');
   const [cptOptFound, setCptOptFound] = useState<string[]>([]);
+  const [stemBanner, setStemBanner] = useState('');
+  const [stemEligible, setStemEligible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -49,12 +51,21 @@ export default function Onboarding() {
         .filter((a) => a.endDate)
         .map((a) => `${a.type} authorization${a.employerName ? ` at ${a.employerName}` : ''} through ${a.endDate}`),
     );
+
+    if (x.isStemDegree) {
+      setStemEligible(true);
+      setStemBanner(
+        `🎓 We detected your degree (CIP: ${x.cipCode}) qualifies for STEM OPT extension — you may be eligible for 24 additional months of OPT after graduation.`,
+      );
+    } else {
+      setStemBanner('');
+    }
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true); setError(''); setI20Notice(''); setStaleWarning(''); setCptOptFound([]);
+    setUploading(true); setError(''); setI20Notice(''); setStaleWarning(''); setCptOptFound([]); setStemBanner('');
     try {
       const extract = await uploadAndExtractI20(file);
       track('i20_uploaded', { hasTextLayer: extract.hasTextLayer, fieldsFound: extract.foundFields.length });
@@ -80,6 +91,7 @@ export default function Onboarding() {
           programStartDate: new Date(f.programStartDate).toISOString(),
           programEndDate: new Date(f.programEndDate).toISOString(),
           usEntryDate: f.usEntryDate ? new Date(f.usEntryDate).toISOString() : undefined,
+          stemEligible,
         }),
       });
       track('onboarding_complete');
@@ -120,6 +132,11 @@ export default function Onboarding() {
             Found {line} — we&apos;ll track this automatically.
           </p>
         ))}
+        {stemBanner && (
+          <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            {stemBanner}
+          </p>
+        )}
         {staleWarning && (
           <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 ring-1 ring-amber-200">
             {staleWarning}

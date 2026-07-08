@@ -65,12 +65,26 @@ export class PdfI20Extractor implements DocumentExtractor {
       if (lines[1]) { schoolOfficialTitle = lines[1]; found.push('schoolOfficialTitle'); }
     }
 
-    let programOfStudy = this.labelValue(flat, ['MAJOR 1', 'Program of Study', 'Major']);
-    if (programOfStudy) {
-      // Real I-20s append the CIP code, e.g. "Computer Programming, General 11.0201" — strip it.
-      programOfStudy = programOfStudy.replace(/,\s*(General\s*)?\d+\.\d+.*$/i, '').replace(/,$/, '').trim();
-      found.push('programOfStudy');
+    // MAJOR 1's value often spans two lines on real I-20s — the program name,
+    // then "General 11.0201" (the CIP code) on the next line — so this reads
+    // a multi-line block rather than labelValue's single-line capture.
+    let programOfStudy: string | null = null;
+    let cipCode: string | null = null;
+    const majorBlock = this.textAfterLabel(flat, ['MAJOR 1', 'Program of Study', 'Major'], 150);
+    if (majorBlock) {
+      const cipMatch = majorBlock.match(/(\d{2}\.\d{4})/);
+      cipCode = cipMatch ? cipMatch[1] : null;
+      const raw = cipMatch ? majorBlock.slice(0, cipMatch.index) : majorBlock.split('\n')[0];
+      programOfStudy = raw
+        .replace(/General\s*$/i, '')
+        .replace(/[,\n]+$/g, '')
+        .replace(/\n/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim() || null;
     }
+    if (programOfStudy) found.push('programOfStudy');
+    if (cipCode) found.push('cipCode');
+    const isStemDegree = detectStemFromCip(cipCode);
 
     let programStartDate: string | null = null;
     let programEndDate: string | null = null;
@@ -152,6 +166,8 @@ export class PdfI20Extractor implements DocumentExtractor {
       schoolOfficialName,
       schoolOfficialTitle,
       programOfStudy,
+      cipCode,
+      isStemDegree,
       degreeLevel,
       programStartDate,
       programEndDate,
@@ -467,11 +483,39 @@ function baseResult(): I20Extract {
     hasTextLayer: true,
     sevisId: null, surname: null, givenName: null, schoolName: null,
     schoolOfficialName: null, schoolOfficialTitle: null,
-    programOfStudy: null, degreeLevel: null, programStartDate: null,
+    programOfStudy: null, cipCode: null, isStemDegree: false, degreeLevel: null,
+    programStartDate: null,
     programEndDate: null, startOfClasses: null, issueDate: null,
     currentSessionStart: null, currentSessionEnd: null,
     authorizations: [], foundFields: [], notice: null,
   };
+}
+
+// STEM CIP code prefixes (published by DHS for OPT STEM extension eligibility)
+const STEM_CIP_PREFIXES = [
+  '01', // Agriculture
+  '03', // Natural Resources
+  '04', // Architecture
+  '11', // Computer Science — this is yours (11.0201)
+  '14', // Engineering
+  '15', // Engineering Technology
+  '25', // Library Science
+  '26', // Biological Sciences
+  '27', // Mathematics
+  '29', // Military Technologies
+  '40', // Physical Sciences
+  '41', // Science Technologies
+  '42', // Psychology (research)
+  '43', // Security Sciences
+  '45', // Social Sciences
+  '51', // Health Professions
+  '52', // Business (select)
+];
+
+function detectStemFromCip(cipCode: string | null): boolean {
+  if (!cipCode) return false;
+  const prefix = cipCode.slice(0, 2);
+  return STEM_CIP_PREFIXES.includes(prefix);
 }
 
 const MONTHS: Record<string, number> = {

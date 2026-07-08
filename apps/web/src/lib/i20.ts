@@ -20,6 +20,8 @@ export interface I20Extract {
   schoolOfficialName: string | null;
   schoolOfficialTitle: string | null;
   programOfStudy: string | null;
+  cipCode: string | null;
+  isStemDegree: boolean;
   degreeLevel: 'BACHELORS' | 'MASTERS' | 'PHD' | 'OTHER' | null;
   programStartDate: string | null;
   programEndDate: string | null;
