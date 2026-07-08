@@ -194,7 +194,7 @@ function Inner() {
       api(`/immigration/deadlines/${id}`, { method: 'PATCH', body: JSON.stringify({ dismissedAt: new Date().toISOString() }) }),
     onSuccess: (_data, id) => {
       qc.setQueryData<Deadline[]>(['deadlines', 'all'], (old) => old?.filter((d) => d.id !== id));
-      showToast('Got it — we won’t remind you about this one');
+      showToast('Got it, we won’t remind you about this one');
     },
   });
 

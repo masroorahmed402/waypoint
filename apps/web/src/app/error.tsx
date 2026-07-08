@@ -8,7 +8,7 @@ export default function GlobalError({ reset }: { error: Error & { digest?: strin
       <p className="mt-8 text-4xl">⚠️</p>
       <h1 className="mt-4 text-2xl font-semibold text-ink">Something went wrong.</h1>
       <p className="mt-2 max-w-sm text-sm text-slate-500">
-        We hit an unexpected error. It&apos;s not your fault — try refreshing the page.
+        We hit an unexpected error. It&apos;s not your fault, try refreshing the page.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         <button

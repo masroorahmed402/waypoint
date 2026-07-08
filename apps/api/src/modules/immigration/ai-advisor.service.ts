@@ -62,7 +62,7 @@ export class AiAdvisorService {
     const systemPrompt = `You are Waypoint's immigration advisor for F-1 international students in the US.
 You have access to this student's actual immigration data. Use it to give specific, personalized answers.
 Be concise, warm, and helpful. Use plain English. Never use legal jargon.
-Never give definitive legal advice — always recommend confirming important decisions with their DSO.
+Never give definitive legal advice, always recommend confirming important decisions with their DSO.
 Keep responses under 150 words unless the question requires more detail.
 
 PRIVACY RULE: Never repeat the student's SEVIS ID, passport number, or date of birth in responses even if stored. Direct them to their secure documents instead.
@@ -78,7 +78,7 @@ Student profile:
 - STEM eligible: ${profile?.stemEligible ? 'Yes (eligible for 24-month STEM OPT extension)' : 'No'}
 - CPT/OPT history: ${cptOptList}
 - Upcoming deadlines: ${deadlinesList}
-- SEVIS ID: stored securely in Waypoint (do not share in responses — if asked, tell them to view it in Settings > Security or check their I-20)`;
+- SEVIS ID: stored securely in Waypoint (do not share in responses, if asked, tell them to view it in Settings > Security or check their I-20)`;
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
@@ -99,7 +99,7 @@ Student profile:
 
     return {
       answer,
-      disclaimer: 'Not legal advice — always confirm with your DSO.',
+      disclaimer: 'Not legal advice, always confirm with your DSO.',
       usedAi: true,
     };
   }

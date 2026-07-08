@@ -13,7 +13,7 @@ const FEATURES = [
   { icon: '📁', title: 'Document Vault', body: 'Store your I-20, passport, and visa securely. Get expiry reminders before they lapse.' },
   { icon: '💼', title: 'Job Tracker', body: 'Track applications with H-1B sponsorship data. Know which companies sponsor before you apply.' },
   { icon: '🎓', title: 'STEM Detection', body: 'We automatically detect if your degree qualifies for 24-month STEM OPT extension.' },
-  { icon: '🏥', title: 'Arrival Checklist', body: 'From SSN to driver’s license — a step-by-step guide for every new student.' },
+  { icon: '🏥', title: 'Arrival Checklist', body: 'From SSN to driver’s license, a step-by-step guide for every new student.' },
   { icon: '📧', title: 'DSO Email Drafter', body: 'AI writes professional emails to your DSO pre-filled with your SEVIS ID and program dates.' },
   { icon: '📊', title: 'USCIS Case Tracker', body: 'Add your receipt number. Get notified the moment your OPT/EAD status changes.' },
   { icon: '🗓️', title: 'Calendar Export', body: 'Export all your deadlines to Google Calendar with one click.' },
@@ -147,7 +147,7 @@ function DemoTabs() {
               Am I eligible for OPT?
             </div>
             <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
-              Yes — based on your program end date of June 2027, your OPT application window opens
+              Yes, based on your program end date of June 2027, your OPT application window opens
               90 days before that, in March 2027. You&apos;ll need to file within 30 days of your DSO
               recommending you in SEVIS.
             </div>
@@ -216,7 +216,7 @@ export default function Home() {
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
             Upload your I-20. Get your personal immigration timeline, deadline reminders, and an AI
-            advisor that answers based on YOUR actual dates — not generic USCIS text.
+            advisor that answers based on YOUR actual dates, not generic USCIS text.
           </p>
 
           <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -295,7 +295,7 @@ export default function Home() {
               },
               {
                 title: 'See your personal timeline (instant)',
-                body: 'Your immigration journey appears instantly — every milestone, deadline, and window specific to your dates.',
+                body: 'Your immigration journey appears instantly: every milestone, deadline, and window specific to your dates.',
                 icon: (
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
                     <circle cx="5" cy="6" r="2" />
@@ -379,7 +379,7 @@ export default function Home() {
               Ask anything about your visa
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-slate-700">
-              {APP_NAME} knows your actual program dates, STEM status, and CPT history — so every
+              {APP_NAME} knows your actual program dates, STEM status, and CPT history, so every
               answer is personal.
             </p>
             <Link
@@ -410,7 +410,7 @@ export default function Home() {
           <div className="mx-auto mt-8 flex max-w-md flex-col gap-2 sm:flex-row">
             {state === 'done' ? (
               <div className="w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
-                You&apos;re on the list — we&apos;ll be in touch. In the meantime, you can{' '}
+                You&apos;re on the list, we&apos;ll be in touch. In the meantime, you can{' '}
                 <Link href="/register" className="font-medium underline">create your account now</Link>.
               </div>
             ) : (
@@ -428,7 +428,7 @@ export default function Home() {
               </>
             )}
           </div>
-          {state === 'error' && <p className="mt-2 text-sm text-red-600">Something went wrong — try again.</p>}
+          {state === 'error' && <p className="mt-2 text-sm text-red-600">Something went wrong, try again.</p>}
           <p className="mt-3 text-xs text-slate-400">No credit card. No subscription. Free to start.</p>
         </div>
       </section>

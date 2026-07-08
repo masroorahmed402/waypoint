@@ -182,7 +182,7 @@ function AdvisorInner() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-semibold text-ink">Immigration Advisor</h1>
-            <p className="text-sm text-slate-500">Personalized to your timeline — powered by AI</p>
+            <p className="text-sm text-slate-500">Personalized to your timeline, powered by AI</p>
           </div>
           {messages.length > 0 && (
             <Button variant="ghost" className="text-xs" onClick={shareConversation}>Share conversation</Button>
@@ -244,7 +244,7 @@ function AdvisorInner() {
                 {m.content}
                 {m.role === 'assistant' && (
                   <p className="mt-2 border-t border-amber-100 pt-1 text-xs text-amber-600">
-                    Not legal advice — confirm with your DSO
+                    Not legal advice, confirm with your DSO
                   </p>
                 )}
               </div>

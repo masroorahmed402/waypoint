@@ -198,7 +198,7 @@ function Inner() {
             <Label>Latest U.S. arrival date (optional)</Label>
             <Input type="date" value={pf.usEntryDate} onChange={setP('usEntryDate')} />
             <p className="mt-1 text-xs text-slate-500">
-              The most recent date you entered the U.S. — important if you&apos;ve traveled internationally.
+              The most recent date you entered the U.S., important if you&apos;ve traveled internationally.
             </p>
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
@@ -217,7 +217,7 @@ function Inner() {
             </Button>
             {profileSaved && (
               <span className="text-sm text-emerald-600">
-                Profile updated — your timeline and deadlines have been recalculated.
+                Profile updated. Your timeline and deadlines have been recalculated.
               </span>
             )}
           </div>

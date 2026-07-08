@@ -54,7 +54,7 @@ export async function uploadAndExtractI20(file: File): Promise<I20Extract> {
     headers: init.upload.headers ?? { 'Content-Type': file.type || 'application/pdf' },
     body: file,
   });
-  if (!put.ok) throw new Error('Upload failed — please try again.');
+  if (!put.ok) throw new Error('Upload failed, please try again.');
 
   await api(`/documents/${init.document.id}/confirm`, { method: 'POST' });
   return api<I20Extract>(`/documents/${init.document.id}/extract`, { method: 'POST' });

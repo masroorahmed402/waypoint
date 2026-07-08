@@ -162,7 +162,7 @@ export class PdfI20Extractor implements DocumentExtractor {
 
     const gotAnything = found.length > 0;
     let notice = gotAnything
-      ? 'Filled from your I-20 — please review each field before continuing.'
+      ? 'Filled from your I-20, please review each field before continuing.'
       : 'We read the file but could not confidently identify I-20 fields. Please fill the form manually.';
 
     // Stale-I20 nudge: a lot can happen (CPT, OPT, extensions) between issuance and today.

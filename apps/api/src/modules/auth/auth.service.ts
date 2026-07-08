@@ -132,7 +132,7 @@ export class AuthService {
     const strength = zxcvbn(newPassword, [stored.user.email, stored.user.firstName, stored.user.lastName]);
     if (strength.score < 3) {
       throw new BadRequestException(
-        'Password too weak — use a longer passphrase or mix of unrelated words.',
+        'Password too weak, use a longer passphrase or mix of unrelated words.',
       );
     }
 
@@ -193,7 +193,7 @@ export class AuthService {
         where: { familyId: stored.familyId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
-      throw new UnauthorizedException('Session revoked — please log in again');
+      throw new UnauthorizedException('Session revoked, please log in again');
     }
     if (stored.expiresAt < new Date() || stored.user.deletedAt) {
       throw new UnauthorizedException('Session expired');
@@ -267,15 +267,15 @@ export class AuthService {
     const html = `
       <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto">
         <p>Hi ${name},</p>
-        <p>Welcome to Waypoint. Upload your I-20 to build your immigration timeline, set up deadline reminders, and track your job search — all in one place.</p>
+        <p>Welcome to Waypoint. Upload your I-20 to build your immigration timeline, set up deadline reminders, and track your job search, all in one place.</p>
         <p style="margin-top:20px">
           <a href="${webOrigin}" style="display:inline-block;background:#16263f;color:#ffffff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:600">
             Go to Waypoint →
           </a>
         </p>
-        <p style="color:#94a3b8;font-size:12px;margin-top:24px">— Waypoint</p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:24px">Waypoint</p>
       </div>`;
-    const text = `Hi ${firstName},\n\nWelcome to Waypoint. Upload your I-20 to build your immigration timeline, set up deadline reminders, and track your job search — all in one place.\n\nGo to Waypoint: ${webOrigin}\n\n— Waypoint`;
+    const text = `Hi ${firstName},\n\nWelcome to Waypoint. Upload your I-20 to build your immigration timeline, set up deadline reminders, and track your job search, all in one place.\n\nGo to Waypoint: ${webOrigin}\n\nWaypoint`;
     return { to, subject: 'Welcome to Waypoint', html, text };
   }
 
@@ -292,11 +292,11 @@ export class AuthService {
           </a>
         </p>
         <p style="margin-top:20px;color:#475569;font-size:13px">
-          If you didn't request this, you can safely ignore this email — your password won't change.
+          If you didn't request this, you can safely ignore this email, your password won't change.
         </p>
-        <p style="color:#94a3b8;font-size:12px;margin-top:24px">— Waypoint</p>
+        <p style="color:#94a3b8;font-size:12px;margin-top:24px">Waypoint</p>
       </div>`;
-    const text = `Hi ${firstName},\n\nWe received a request to reset your Waypoint password. This link expires in 1 hour.\n\nReset your password: ${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.\n\n— Waypoint`;
+    const text = `Hi ${firstName},\n\nWe received a request to reset your Waypoint password. This link expires in 1 hour.\n\nReset your password: ${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.\n\nWaypoint`;
     return { to, subject: 'Reset your Waypoint password', html, text };
   }
 }

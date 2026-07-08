@@ -14,7 +14,7 @@ export class ImmigrationService {
     return {
       ruleVersion: RULE_VERSION,
       disclaimer:
-        'Informational only, not legal advice. Dates are computed from general F-1 rules — always confirm with your Designated School Official (DSO).',
+        'Informational only, not legal advice. Dates are computed from general F-1 rules, always confirm with your Designated School Official (DSO).',
       milestones: computeTimeline({
         programStartDate: profile.programStartDate,
         programEndDate: profile.programEndDate,
@@ -226,7 +226,7 @@ export class ImmigrationService {
 
   /** Auto-generated deadline for a CPT/OPT authorization's end date; upserts by dedupeKey so re-extraction doesn't duplicate. */
   async createCptOptDeadline(userId: string, record: { id: string; type: string; endDate: Date; employerName: string | null }) {
-    const label = record.employerName ? `${record.type} authorization expires — ${record.employerName}` : `${record.type} authorization expires`;
+    const label = record.employerName ? `${record.type} authorization expires, ${record.employerName}` : `${record.type} authorization expires`;
     await this.prisma.deadline.upsert({
       where: { userId_dedupeKey: { userId, dedupeKey: `cptopt:${record.id}` } },
       create: {

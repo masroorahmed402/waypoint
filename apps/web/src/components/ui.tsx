@@ -42,7 +42,7 @@ export function Skeleton({ className }: { className?: string }) {
 export function Disclaimer() {
   return (
     <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">
-      Informational only — not legal advice. Always confirm immigration questions with your DSO.
+      Informational only, not legal advice. Always confirm immigration questions with your DSO.
     </p>
   );
 }

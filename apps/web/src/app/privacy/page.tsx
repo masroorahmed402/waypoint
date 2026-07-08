@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { APP_NAME } from '@/lib/brand';
 
-export const metadata = { title: `Privacy Policy — ${APP_NAME}` };
+export const metadata = { title: `Privacy Policy: ${APP_NAME}` };
 
 export default function Privacy() {
   return (

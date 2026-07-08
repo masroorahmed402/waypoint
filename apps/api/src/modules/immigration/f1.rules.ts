@@ -122,8 +122,8 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
     items.push({
       key: 'cpt_active',
       label: activeCpt.employerName
-        ? `Currently on CPT at ${activeCpt.employerName} — expires ${fmtDate(activeCpt.endDate)}`
-        : `Currently on CPT — expires ${fmtDate(activeCpt.endDate)}`,
+        ? `Currently on CPT at ${activeCpt.employerName}, expires ${fmtDate(activeCpt.endDate)}`
+        : `Currently on CPT, expires ${fmtDate(activeCpt.endDate)}`,
       date: activeCpt.endDate,
       status: 'CURRENT',
       explanation: 'Your Curricular Practical Training authorization is active. Confirm any extension or next steps with your DSO before it expires.',
@@ -136,7 +136,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: cptFrom,
       status: status(cptFrom, now),
       explanation:
-        'Curricular Practical Training generally requires one full academic year of enrollment first. Some graduate programs qualify sooner — ask your DSO.',
+        'Curricular Practical Training generally requires one full academic year of enrollment first. Some graduate programs qualify sooner, ask your DSO.',
       sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
     });
   }
@@ -175,7 +175,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       dateRange: { start: optOpen, end: optClose },
       status: now < optOpen ? 'UPCOMING' : now > optClose ? 'PAST' : 'CURRENT',
       explanation:
-        'USCIS accepts Form I-765 for post-completion OPT from 90 days before your program end date until 60 days after — AND within 30 days of your DSO issuing the OPT recommendation I-20. File early; the window closing is unforgiving.',
+        'USCIS accepts Form I-765 for post-completion OPT from 90 days before your program end date until 60 days after, AND within 30 days of your DSO issuing the OPT recommendation I-20. File early; the window closing is unforgiving.',
       sourceUrl: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students',
     });
   }
@@ -220,7 +220,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: stemReport12mo,
       status: status(stemReport12mo, now),
       explanation:
-        'STEM OPT requires a validation report at the 12-month mark of the extension confirming your employment is still on track — submitted through your DSO.',
+        'STEM OPT requires a validation report at the 12-month mark of the extension confirming your employment is still on track, submitted through your DSO.',
       sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
     });
     items.push({
@@ -286,7 +286,7 @@ export function computeSystemDeadlines(p: ProfileDates): GeneratedDeadline[] {
         type: 'STEM_OPT_EXTENSION_END',
         title: `${STEM_EXTENSION_MONTHS}-month STEM OPT extension ends`,
         dueDate: stemExtensionEnd,
-        notes: 'Final day of your STEM OPT extension — confirm your next steps with your DSO well before this date.',
+        notes: 'Final day of your STEM OPT extension, confirm your next steps with your DSO well before this date.',
       },
     );
   }

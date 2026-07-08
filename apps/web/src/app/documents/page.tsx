@@ -104,7 +104,7 @@ function Inner() {
   async function uploadFile(file: File) {
     setError('');
     if (file.size > MAX_FILE_BYTES) {
-      setError('File is too large — max 20MB.');
+      setError('File is too large, max 20MB.');
       return;
     }
 
@@ -135,7 +135,7 @@ function Inner() {
       showToast('Document saved securely');
       setTimeout(() => { setJustUploaded(false); setAnalyzing(false); }, 1600);
     } catch (err: any) {
-      setError(err.message ?? 'Upload failed — please try again.');
+      setError(err.message ?? 'Upload failed, please try again.');
       setUploading(false);
     } finally {
       setProgress(0);
@@ -205,7 +205,7 @@ function Inner() {
           <>
             <div className="flex justify-center gap-3 text-3xl">📄 🛂 🪪</div>
             <p className="mt-3 text-sm font-medium text-ink">Drag &amp; drop your I-20, passport, or visa</p>
-            <p className="mt-1 text-xs text-slate-500">or click to browse — PDF, JPG, PNG up to 20MB</p>
+            <p className="mt-1 text-xs text-slate-500">or click to browse, PDF, JPG, PNG up to 20MB</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               <select
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
@@ -303,9 +303,9 @@ function putWithProgress(
     };
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve();
-      else reject(new Error('Upload failed — please try again.'));
+      else reject(new Error('Upload failed, please try again.'));
     };
-    xhr.onerror = () => reject(new Error('Upload failed — please try again.'));
+    xhr.onerror = () => reject(new Error('Upload failed, please try again.'));
     xhr.send(file);
   });
 }

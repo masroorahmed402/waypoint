@@ -200,7 +200,7 @@ export class DocumentsService {
     if (doc.status === DocumentStatus.ACTIVE) return doc;
 
     const head = await this.storage.head(doc.storageKey);
-    if (!head.exists) throw new BadRequestException('Upload not found — retry the upload');
+    if (!head.exists) throw new BadRequestException('Upload not found, retry the upload');
     if (head.sizeBytes !== undefined && head.sizeBytes > doc.sizeBytes * 1.05) {
       await this.storage.delete(doc.storageKey);
       throw new BadRequestException('Uploaded file does not match declared size');

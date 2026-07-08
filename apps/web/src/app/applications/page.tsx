@@ -337,7 +337,7 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
         </div>
         {!selectedCompanyId && f.companyName.trim() && showManualH1b && (
           <div>
-            <Label>New company — sponsors H-1B?</Label>
+            <Label>New company: sponsors H-1B?</Label>
             <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={newCompanySponsorsH1b} onChange={(e) => setNewCompanySponsorsH1b(e.target.value)}>
               <option value="UNKNOWN">Unknown</option>
               <option value="YES">Yes</option>

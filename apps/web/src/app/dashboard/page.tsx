@@ -137,7 +137,7 @@ function DashboardInner() {
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deadlines'] });
-      showToast('Got it — we won’t remind you about this one');
+      showToast('Got it, we won’t remind you about this one');
     },
   });
 
@@ -185,7 +185,7 @@ function DashboardInner() {
     },
     monthsToProgramEnd <= 18 && monthsToProgramEnd > 0 && {
       icon: '🎓', title: 'Check your OPT eligibility', href: '/advisor',
-      description: `Your program ends in about ${monthsToProgramEnd} months — ask the advisor when your OPT window opens.`,
+      description: `Your program ends in about ${monthsToProgramEnd} months, ask the advisor when your OPT window opens.`,
     },
     pipeline.length === 0 && {
       icon: '💼', title: 'Add job applications', href: '/applications',

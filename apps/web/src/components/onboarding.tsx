@@ -97,7 +97,7 @@ export default function Onboarding() {
     if (x.isStemDegree) {
       setStemEligible(true);
       setStemBanner(
-        `🎓 We detected your degree (CIP: ${x.cipCode}) qualifies for STEM OPT extension — you may be eligible for 24 additional months of OPT after graduation.`,
+        `🎓 We detected your degree (CIP: ${x.cipCode}) qualifies for STEM OPT extension. You may be eligible for 24 additional months of OPT after graduation.`,
       );
     } else {
       setStemBanner('');
@@ -183,7 +183,7 @@ export default function Onboarding() {
             <p className="text-sm font-medium">Upload your most recent I-20</p>
             <p className="mt-1 text-xs text-slate-500">
               We&apos;ll auto-fill your program details and detect any CPT/OPT authorizations already on it.
-              Make sure it&apos;s your latest — DSOs issue new I-20s for CPT, OPT, and program extensions.
+              Make sure it&apos;s your latest, DSOs issue new I-20s for CPT, OPT, and program extensions.
             </p>
             <Button className="mt-4" type="button" onClick={() => fileRef.current?.click()} disabled={uploading}>
               {uploading ? 'Reading…' : 'Upload I-20'}
@@ -218,7 +218,7 @@ export default function Onboarding() {
           )}
           {cptOptFound.map((line) => (
             <p key={line} className="mb-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-              Found {line} — we&apos;ll track this automatically.
+              Found {line}, we&apos;ll track this automatically.
             </p>
           ))}
           {stemBanner && (
@@ -272,7 +272,7 @@ export default function Onboarding() {
               </div>
             </div>
             {prefilled.size > 0 && (
-              <p className="text-xs text-emerald-700">Green fields came from your I-20 — double-check them, then continue.</p>
+              <p className="text-xs text-emerald-700">Green fields came from your I-20, double-check them, then continue.</p>
             )}
           </div>
 
@@ -298,7 +298,7 @@ export default function Onboarding() {
               <Label>Latest U.S. arrival date (optional)</Label>
               <Input type="date" value={f.usEntryDate} onChange={set('usEntryDate')} />
               <p className="mt-1 text-xs text-slate-500">
-                The most recent date you entered the U.S. — important if you&apos;ve traveled internationally.
+                The most recent date you entered the U.S., important if you&apos;ve traveled internationally.
               </p>
             </div>
           </div>
@@ -322,9 +322,9 @@ export default function Onboarding() {
           </div>
           <p className="mt-3 text-sm font-medium">You&apos;re all set, {personal.firstName || 'there'}!</p>
           <div className="mt-4 space-y-1.5 text-left text-sm text-slate-600">
-            <p><span className="text-slate-400">University:</span> {f.universityName || '—'}</p>
-            <p><span className="text-slate-400">Program:</span> {f.major || '—'}</p>
-            <p><span className="text-slate-400">Timeline:</span> {f.programStartDate || '—'} → {f.programEndDate || '—'}</p>
+            <p><span className="text-slate-400">University:</span> {f.universityName || 'Not set'}</p>
+            <p><span className="text-slate-400">Program:</span> {f.major || 'Not set'}</p>
+            <p><span className="text-slate-400">Timeline:</span> {f.programStartDate || 'Not set'} to {f.programEndDate || 'Not set'}</p>
           </div>
           <p className="mt-4 text-xs text-slate-500">
             Your dashboard and deadlines are ready. You can fine-tune any of this later in Settings.
