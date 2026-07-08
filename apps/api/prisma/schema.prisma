@@ -45,6 +45,7 @@ model User {
   optUnemploymentPeriods OptUnemploymentPeriod[]
   communityPosts   CommunityPost[]
   communityReplies CommunityReply[]
+  auditLogs        AuditLog[]
 }
 
 model OAuthAccount {
@@ -507,4 +508,19 @@ model CommunityReply {
   user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([postId, createdAt])
+}
+
+// ─── Audit log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String // 'sevis_id_viewed' | 'document_downloaded' | 'document_deleted' | 'account_deleted' | 'login_new_device'
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }

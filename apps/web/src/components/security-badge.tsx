@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export function SecurityBadge({ variant = 'inline' }: { variant?: 'inline' | 'card' | 'banner' }) {
   if (variant === 'banner') {
     return (
@@ -7,10 +9,12 @@ export function SecurityBadge({ variant = 'inline' }: { variant?: 'inline' | 'ca
           <div>
             <p className="font-medium text-emerald-800">Your documents are secure</p>
             <p className="mt-1 text-sm text-emerald-700">
-              All files are encrypted with AES-256 and stored privately. We never share your data with third
-              parties. Your documents are used only to generate your personal timeline and alerts, nothing else.
-              You can delete everything at any time from Settings.
+              Your document is encrypted immediately on upload. Only you can access it. We use it only to
+              extract dates and generate your personal alerts. Never shared with anyone, delete anytime.
             </p>
+            <Link href="/security" className="mt-1 inline-block text-sm font-medium text-emerald-800 underline">
+              Read our security policy →
+            </Link>
           </div>
         </div>
       </div>

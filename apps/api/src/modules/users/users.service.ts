@@ -82,7 +82,7 @@ export class UsersService {
     return profile;
   }
 
-  async getSevisId(userId: string, password: string) {
+  async getSevisId(userId: string, password: string, meta?: { ip?: string; userAgent?: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { profile: true },
@@ -96,7 +96,27 @@ export class UsersService {
     if (!profile?.sevisIdEncrypted) return { sevisId: null };
 
     const sevisId = decryptField(profile.sevisIdEncrypted, this.config.fieldEncryptionKey);
+    await this.logAudit(userId, 'sevis_id_viewed', meta);
     return { sevisId };
+  }
+
+  /** Best-effort security log write; never blocks the underlying action on failure. */
+  async logAudit(userId: string, action: string, meta?: { ip?: string; userAgent?: string }) {
+    try {
+      await this.prisma.auditLog.create({
+        data: { userId, action, ipAddress: meta?.ip, userAgent: meta?.userAgent },
+      });
+    } catch {
+      // Logging is a bonus, not the primary flow.
+    }
+  }
+
+  async getAuditLog(userId: string) {
+    return this.prisma.auditLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
   }
 
   async hardDelete(userId: string) {

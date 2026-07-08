@@ -445,6 +445,7 @@ export default function Home() {
           </div>
           <div className="mt-4 flex justify-center gap-4 text-xs text-slate-500">
             <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <Link href="/security" className="hover:text-ink">Security</Link>
             <Link href="/terms" className="hover:text-ink">Terms</Link>
             <Link href="/login" className="hover:text-ink">Contact</Link>
           </div>

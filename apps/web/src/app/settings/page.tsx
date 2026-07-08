@@ -247,6 +247,15 @@ function Inner() {
             <p className="mt-0.5 text-xs text-slate-500">Changing your password from here is coming soon.</p>
           </div>
           <div className="border-t border-slate-100 pt-4">
+            <p className="text-sm font-medium text-ink">AI Advisor</p>
+            <p className="mt-0.5 text-xs text-slate-500">
+              The AI Advisor sends your profile information (name, university, program dates, deadline titles)
+              to Groq's API to generate responses. Your documents and encrypted fields (SEVIS ID, passport
+              number) are never sent to the AI.
+            </p>
+          </div>
+          <AuditLogSection />
+          <div className="border-t border-slate-100 pt-4">
             <Button variant="ghost" onClick={logout}>Log out</Button>
           </div>
         </div>
@@ -305,6 +314,38 @@ function Inner() {
           )}
         </div>
       </Card>
+    </div>
+  );
+}
+
+const ACTION_LABEL: Record<string, string> = {
+  sevis_id_viewed: 'SEVIS ID viewed',
+  document_downloaded: 'Document downloaded',
+  document_deleted: 'Document deleted',
+  account_deleted: 'Account deleted',
+  login_new_device: 'Login from new device',
+};
+
+function AuditLogSection() {
+  const log = useQuery({
+    queryKey: ['audit-log'],
+    queryFn: () => api<{ id: string; action: string; createdAt: string }[]>('/users/me/audit-log'),
+  });
+
+  if (!log.data?.length) return null;
+
+  return (
+    <div className="border-t border-slate-100 pt-4">
+      <p className="text-sm font-medium text-ink">Security log</p>
+      <p className="mt-0.5 text-xs text-slate-500">Recent sensitive actions on your account.</p>
+      <div className="mt-2 space-y-1.5">
+        {log.data.slice(0, 10).map((entry) => (
+          <div key={entry.id} className="flex items-center justify-between text-xs text-slate-500">
+            <span>{ACTION_LABEL[entry.action] ?? entry.action}</span>
+            <span>{new Date(entry.createdAt).toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

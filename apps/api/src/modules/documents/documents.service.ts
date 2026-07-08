@@ -426,7 +426,17 @@ export class DocumentsService {
   async downloadUrl(userId: string, id: string) {
     const doc = await this.findOwned(userId, id);
     if (doc.status !== DocumentStatus.ACTIVE) throw new NotFoundException();
+    await this.logAudit(userId, 'document_downloaded');
     return { url: await this.storage.presignDownload(doc.storageKey, doc.fileName) };
+  }
+
+  /** Best-effort security log write; never blocks the underlying action on failure. */
+  private async logAudit(userId: string, action: string) {
+    try {
+      await this.prisma.auditLog.create({ data: { userId, action } });
+    } catch {
+      // Logging is a bonus, not the primary flow.
+    }
   }
 
   async update(userId: string, id: string, dto: UpdateDocumentDto) {
@@ -455,6 +465,7 @@ export class DocumentsService {
       where: { id },
       data: { status: DocumentStatus.DELETED, deletedAt: new Date() },
     });
+    await this.logAudit(userId, 'document_deleted');
   }
 
   private async findOwned(userId: string, id: string) {
