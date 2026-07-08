@@ -87,6 +87,63 @@ export default function Home() {
         </div>
       </section>
 
+      {/* how it works */}
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="text-center font-display text-3xl font-semibold text-ink">How it works</h2>
+          <div className="relative mt-14 grid gap-12 sm:grid-cols-3 sm:gap-6">
+            <div
+              className="absolute left-0 right-0 top-6 hidden border-t-2 border-dotted border-beacon/40 sm:block"
+              style={{ marginLeft: '16.67%', marginRight: '16.67%' }}
+            />
+            {[
+              {
+                title: 'Upload your I-20',
+                body: 'Drag in your I-20 PDF. Waypoint reads your program dates, STEM status, and CPT/OPT history automatically.',
+                icon: (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinejoin="round" />
+                    <path d="M14 2v6h6" strokeLinejoin="round" />
+                    <path d="M9 15l3-3 3 3M12 12v6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'See your personal timeline',
+                body: 'Your immigration journey appears instantly — every milestone, deadline, and window specific to your dates.',
+                icon: (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <circle cx="5" cy="6" r="2" />
+                    <circle cx="12" cy="18" r="2" />
+                    <circle cx="19" cy="10" r="2" />
+                    <path d="M5 8v4a2 2 0 0 0 2 2h3M14 18h3a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ),
+              },
+              {
+                title: 'Never miss what matters',
+                body: 'Email reminders at 90, 30, 7, and 1 day before every deadline. Plus an AI advisor that knows your situation.',
+                icon: (
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ),
+              },
+            ].map((step, i) => (
+              <div key={step.title} className="relative flex flex-col items-center text-center">
+                <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-beacon ring-8 ring-white">
+                  {step.icon}
+                </div>
+                <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-beacon-600">Step {i + 1}</p>
+                <h3 className="mt-1 font-display text-lg font-semibold text-ink">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* three promises */}
       <section className="bg-paper">
         <div className="mx-auto grid max-w-5xl gap-10 px-6 py-20 sm:grid-cols-3">
