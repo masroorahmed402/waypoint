@@ -43,6 +43,8 @@ model User {
   checklistItems ChecklistItem[]
   uscisCases    UscisCaseTracker[]
   optUnemploymentPeriods OptUnemploymentPeriod[]
+  communityPosts   CommunityPost[]
+  communityReplies CommunityReply[]
 }
 
 model OAuthAccount {
@@ -469,4 +471,40 @@ model WaitlistEntry {
   email     String   @unique
   source    String? // where they signed up from
   createdAt DateTime @default(now())
+}
+
+// ─── Community ───────────────────────────────────────────────────────────────
+
+model CommunityPost {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  content     String
+  category    String // 'opt' | 'cpt' | 'housing' | 'jobs' | 'tax' | 'general'
+  university  String? // denormalized from the author's profile at post time
+  upvotes     Int       @default(0)
+  isAnonymous Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replies CommunityReply[]
+
+  @@index([category, createdAt])
+}
+
+model CommunityReply {
+  id          String   @id @default(cuid())
+  postId      String
+  userId      String
+  content     String
+  isAnonymous Boolean  @default(true)
+  upvotes     Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  post CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
 }

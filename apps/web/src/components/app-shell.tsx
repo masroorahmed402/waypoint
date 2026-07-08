@@ -22,6 +22,7 @@ const NAV = [
   { href: '/advisor', label: 'Advisor' },
   { href: '/documents', label: 'Documents' },
   { href: '/applications', label: 'Applications' },
+  { href: '/community', label: 'Community' },
   { href: '/settings', label: 'Settings' },
 ];
 
