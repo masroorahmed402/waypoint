@@ -198,6 +198,10 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
   const [newCompanySponsorsH1b, setNewCompanySponsorsH1b] = useState<string>('UNKNOWN');
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
+  const { data: h1bData } = useH1bData(f.companyName);
+  // Only ask the user to manually mark H-1B sponsorship when auto-detection
+  // found nothing conclusive — a positive petition count speaks for itself.
+  const showManualH1b = !h1bData || h1bData.totalPetitions === 0 || !!h1bData.error;
 
   function onCompanyNameChange(name: string) {
     setF({ ...f, companyName: name });
@@ -252,14 +256,14 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
         <div><Label>Salary min (optional)</Label><Input type="number" value={f.salaryMin} onChange={set('salaryMin')} /></div>
         <div><Label>Salary max (optional)</Label><Input type="number" value={f.salaryMax} onChange={set('salaryMax')} /></div>
         <div>
-          <Label>Sponsors international?</Label>
+          <Label>Sponsors F-1 students (CPT/OPT)?</Label>
           <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={f.sponsorshipConfirmed} onChange={set('sponsorshipConfirmed')}>
             <option value="UNKNOWN">Unknown</option>
             <option value="YES">Yes</option>
             <option value="NO">No</option>
           </select>
         </div>
-        {!selectedCompanyId && f.companyName.trim() && (
+        {!selectedCompanyId && f.companyName.trim() && showManualH1b && (
           <div>
             <Label>New company — sponsors H-1B?</Label>
             <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={newCompanySponsorsH1b} onChange={(e) => setNewCompanySponsorsH1b(e.target.value)}>
@@ -328,13 +332,17 @@ function CompanyTypeahead({ value, onChange, onSelect }: {
 }
 
 /** Live H-1B disclosure lookup for a company name — cached per unique name by react-query. */
-function H1bBadge({ companyName, compact }: { companyName: string; compact?: boolean }) {
-  const { data, isLoading } = useQuery({
+function useH1bData(companyName: string) {
+  return useQuery({
     queryKey: ['h1b', companyName.toLowerCase().trim()],
     queryFn: () => api<H1bData>(`/career/companies/${encodeURIComponent(companyName)}/h1b`),
     enabled: !!companyName.trim(),
     staleTime: 60 * 60 * 1000,
   });
+}
+
+function H1bBadge({ companyName, compact }: { companyName: string; compact?: boolean }) {
+  const { data, isLoading } = useH1bData(companyName);
 
   if (!companyName.trim()) return null;
   if (isLoading) {
