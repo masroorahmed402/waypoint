@@ -11,6 +11,18 @@ export default function SettingsPage() {
 
 const toDateInput = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
 
+function SectionHeading({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-lg">{icon}</span>
+      <div>
+        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+        <p className="text-sm text-slate-500">{subtitle}</p>
+      </div>
+    </div>
+  );
+}
+
 function SevisIdCard() {
   const [revealed, setRevealed] = useState(false);
   const [password, setPassword] = useState('');
@@ -34,13 +46,11 @@ function SevisIdCard() {
   }
 
   return (
-    <Card className="p-6">
-      <h2 className="font-display text-lg font-semibold text-ink">SEVIS ID</h2>
-      <p className="mt-1 text-sm text-slate-500">
-        Your SEVIS ID is stored encrypted. Enter your password to view it.
-      </p>
+    <div>
+      <p className="text-sm font-medium text-ink">SEVIS ID</p>
+      <p className="mt-0.5 text-xs text-slate-500">Stored encrypted. Enter your password to view it.</p>
       {!revealed ? (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-2 flex gap-2">
           <Input type="password" placeholder="Your password" value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && reveal()} />
@@ -49,7 +59,7 @@ function SevisIdCard() {
           </Button>
         </div>
       ) : (
-        <div className="mt-3">
+        <div className="mt-2">
           <div className="rounded-lg bg-slate-50 px-4 py-3 font-mono text-lg tracking-widest text-ink">
             {sevisId ?? 'Not stored — upload your I-20 to save it'}
           </div>
@@ -60,7 +70,7 @@ function SevisIdCard() {
         </div>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-    </Card>
+    </div>
   );
 }
 
@@ -72,6 +82,7 @@ function Inner() {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
+  const [emailRemindersOn] = useState(true);
 
   const profile = me?.profile;
   const [pf, setPf] = useState({
@@ -136,8 +147,7 @@ function Inner() {
       </div>
 
       <Card className="p-6">
-        <h2 className="font-display text-lg font-semibold text-ink">Profile</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Your name and login email.</p>
+        <SectionHeading icon="👤" title="Profile" subtitle="Your name and login email." />
         <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>First name</Label><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></div>
@@ -151,11 +161,8 @@ function Inner() {
         </div>
       </Card>
 
-      <SevisIdCard />
-
       <Card className="p-6">
-        <h2 className="font-display text-lg font-semibold text-ink">Academic profile</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Powers your timeline and auto-generated deadlines.</p>
+        <SectionHeading icon="🎓" title="Academic" subtitle="Powers your timeline and auto-generated deadlines." />
         <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
           <div><Label>University</Label><Input value={pf.universityName} onChange={setP('universityName')} /></div>
           <div><Label>Major / program</Label><Input value={pf.major} onChange={setP('major')} /></div>
@@ -214,16 +221,43 @@ function Inner() {
       </Card>
 
       <Card className="p-6">
-        <h2 className="font-display text-lg font-semibold text-ink">Session</h2>
-        <p className="mt-0.5 text-sm text-slate-500">Sign out of this device.</p>
-        <div className="mt-4 border-t border-slate-100 pt-4"><Button variant="ghost" onClick={logout}>Log out</Button></div>
+        <SectionHeading icon="🔐" title="Security" subtitle="Your SEVIS ID and account access." />
+        <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+          <SevisIdCard />
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-sm font-medium text-ink">Password</p>
+            <p className="mt-0.5 text-xs text-slate-500">Changing your password from here is coming soon.</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <Button variant="ghost" onClick={logout}>Log out</Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <SectionHeading icon="🔔" title="Notifications" subtitle="How we reach you about deadlines." />
+        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-ink">Email reminders</p>
+              <p className="text-xs text-slate-500">Sent at 90, 30, 7, and 1 day before every deadline.</p>
+            </div>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${emailRemindersOn ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+              {emailRemindersOn ? 'On' : 'Off'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between opacity-60">
+            <div>
+              <p className="text-sm font-medium text-ink">Push notifications</p>
+              <p className="text-xs text-slate-500">Not available yet.</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Coming soon</span>
+          </div>
+        </div>
       </Card>
 
       <Card className="border-red-200 p-6">
-        <h2 className="font-display text-lg font-semibold text-red-700">Delete account</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          This removes your profile, timeline, deadlines, applications, and documents. This can&apos;t be undone.
-        </p>
+        <SectionHeading icon="🗑️" title="Danger zone" subtitle="Delete your account and all associated data." />
         <div className="mt-4 border-t border-red-100 pt-4">
           {!confirmDelete ? (
             <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete my account</Button>
