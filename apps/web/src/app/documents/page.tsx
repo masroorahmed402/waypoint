@@ -7,6 +7,7 @@ import { Button, Card, Skeleton } from '@/components/ui';
 import { SecurityBadge } from '@/components/security-badge';
 import { formatDeadline, formatDate } from '@/lib/format-date';
 import { showToast } from '@/lib/toast';
+import { useAuth } from '@/lib/auth-context';
 
 interface Doc {
   id: string; type: string; status: string; fileName: string; contentType: string;
@@ -113,6 +114,7 @@ export default function DocumentsPage() {
 
 function Inner() {
   const qc = useQueryClient();
+  const { me, refreshMe } = useAuth();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploadType, setUploadType] = useState<string>('I20');
   const [uploading, setUploading] = useState(false);
@@ -167,7 +169,36 @@ function Inner() {
       if (uploadType === 'I20') setAnalyzing(true);
       await api(`/documents/${init.document.id}/confirm`, { method: 'POST' });
       qc.invalidateQueries({ queryKey: ['documents'] });
-      if (uploadType === 'I20') setI20Banner(true);
+      if (uploadType === 'I20') {
+        setI20Banner(true);
+        try {
+          const extract = await api<{ programEndDate: string | null }>(`/documents/${init.document.id}/extract`, { method: 'POST' });
+          const currentEnd = me?.profile?.programEndDate?.slice(0, 10);
+          if (extract.programEndDate && currentEnd && extract.programEndDate !== currentEnd) {
+            const confirmed = window.confirm(
+              `Your new I-20 shows a different program end date: ${formatDate(extract.programEndDate)} (currently ${formatDate(currentEnd)}). Update your profile to recalculate your timeline?`,
+            );
+            if (confirmed) {
+              const p = me!.profile!;
+              await api('/users/me/profile', {
+                method: 'PUT',
+                body: JSON.stringify({
+                  universityName: p.universityName || undefined,
+                  major: p.major,
+                  degreeLevel: p.degreeLevel,
+                  visaType: p.visaType,
+                  programStartDate: p.programStartDate,
+                  programEndDate: new Date(extract.programEndDate).toISOString(),
+                  usEntryDate: p.usEntryDate || undefined,
+                  stemEligible: p.stemEligible,
+                }),
+              });
+              await refreshMe();
+              showToast('Profile updated, your timeline has been recalculated');
+            }
+          }
+        } catch { /* comparison is a bonus, never block the upload flow */ }
+      }
       showToast('Document saved securely');
       setTimeout(() => { setJustUploaded(false); setAnalyzing(false); }, 1600);
     } catch (err: any) {
