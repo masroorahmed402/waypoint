@@ -130,6 +130,8 @@ model University {
   city      String
   state     String
   issOfficeUrl String?
+  issEmail  String?
+  issPhone  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
