@@ -96,7 +96,7 @@ function Inner() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Applications</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">Applications</h1>
         <Button variant="accent" className="px-6 py-3 text-base" onClick={() => setAdding(true)}>+ Add application</Button>
       </div>
 

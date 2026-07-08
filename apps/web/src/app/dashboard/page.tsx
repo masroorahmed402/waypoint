@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import AppShell from '@/components/app-shell';
 import Onboarding from '@/components/onboarding';
 import ArrivalChecklist from '@/components/arrival-checklist';
-import { Card, Skeleton } from '@/components/ui';
+import { Card, Skeleton, Disclaimer } from '@/components/ui';
 import { hasUsedAdvisor, hasDraftedDsoEmail, getGreeting, recordCheckIn } from '@/lib/engagement';
 import { formatDeadline, formatDate } from '@/lib/format-date';
 import { showToast } from '@/lib/toast';
@@ -301,6 +301,9 @@ function DashboardInner() {
               </div>
             );
           })}
+        </div>
+        <div className="mt-3">
+          <Disclaimer />
         </div>
       </div>
 
