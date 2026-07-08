@@ -20,6 +20,11 @@ export interface Me {
     university: { id: string; name: string; slug: string } | null;
     universityName: string | null;
     stemEligible: boolean;
+    onReducedCourseLoad?: boolean;
+    rclEndDate?: string | null;
+    changeOfStatusDetected?: boolean;
+    capGapDetected?: boolean;
+    countryOfCitizenship?: string | null;
   };
 }
 

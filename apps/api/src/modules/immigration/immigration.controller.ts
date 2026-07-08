@@ -26,6 +26,15 @@ export class ImmigrationController {
   @Get('dso-contact')
   dsoContact(@CurrentUser() u: JwtUser) { return this.svc.getDsoContact(u.sub); }
 
+  @Post('opt-unemployment/start')
+  startOptUnemployment(@CurrentUser() u: JwtUser) { return this.svc.startOptUnemployment(u.sub); }
+
+  @Post('opt-unemployment/end')
+  endOptUnemployment(@CurrentUser() u: JwtUser) { return this.svc.endOptUnemployment(u.sub); }
+
+  @Get('opt-unemployment/summary')
+  optUnemploymentSummary(@CurrentUser() u: JwtUser) { return this.svc.getOptUnemploymentSummary(u.sub); }
+
   @Get('deadlines/export.ics')
   async exportIcs(@CurrentUser() u: JwtUser, @Res() res: Response) {
     const ics = await this.svc.exportIcs(u.sub);

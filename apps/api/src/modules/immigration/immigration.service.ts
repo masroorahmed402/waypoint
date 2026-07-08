@@ -29,12 +29,14 @@ export class ImmigrationService {
   async recomputeSystemDeadlines(userId: string) {
     const profile = await this.prisma.studentProfile.findUnique({ where: { userId } });
     if (!profile) return;
+    const cptOptRecords = await this.prisma.cptOptRecord.findMany({ where: { userId } });
 
     const generated = computeSystemDeadlines({
       programStartDate: profile.programStartDate,
       programEndDate: profile.programEndDate,
       usEntryDate: profile.usEntryDate,
       stemEligible: profile.stemEligible,
+      cptOptRecords,
     });
 
     for (const g of generated) {
@@ -222,6 +224,47 @@ export class ImmigrationService {
 
   async getDsoContact(userId: string) {
     return this.prisma.dsoContact.findUnique({ where: { userId } });
+  }
+
+  /** Marks the start of an OPT unemployment period (e.g. between jobs). Only one open period at a time. */
+  async startOptUnemployment(userId: string) {
+    const open = await this.prisma.optUnemploymentPeriod.findFirst({ where: { userId, endDate: null } });
+    if (open) return open;
+    return this.prisma.optUnemploymentPeriod.create({ data: { userId, startDate: new Date() } });
+  }
+
+  /** Closes the currently open unemployment period, if any (e.g. the student found a job). */
+  async endOptUnemployment(userId: string) {
+    const open = await this.prisma.optUnemploymentPeriod.findFirst({ where: { userId, endDate: null }, orderBy: { startDate: 'desc' } });
+    if (!open) throw new NotFoundException('No open unemployment period to end');
+    return this.prisma.optUnemploymentPeriod.update({ where: { id: open.id }, data: { endDate: new Date() } });
+  }
+
+  /** F-1 OPT students have a 90-day unemployment limit (60 for STEM OPT extension); count days used to date. */
+  async getOptUnemploymentSummary(userId: string) {
+    const profile = await this.prisma.studentProfile.findUnique({ where: { userId } });
+    const periods = await this.prisma.optUnemploymentPeriod.findMany({ where: { userId }, orderBy: { startDate: 'asc' } });
+    const limit = profile?.stemEligible ? 150 : 90; // 90 initial + 60 STEM extension, cumulative
+    const now = new Date();
+
+    const daysUsed = periods.reduce((sum, p) => {
+      const end = p.endDate ?? now;
+      const days = Math.max(0, Math.ceil((end.getTime() - p.startDate.getTime()) / 86_400_000));
+      return sum + days;
+    }, 0);
+
+    return {
+      periods,
+      daysUsed,
+      daysRemaining: Math.max(0, limit - daysUsed),
+      limit,
+      warning:
+        daysUsed >= limit
+          ? `You have used all ${limit} days of allowed unemployment. Continuing unemployment risks your OPT status.`
+          : daysUsed >= limit - 15
+            ? `You have ${limit - daysUsed} unemployment days left. Report a new job as soon as you start.`
+            : null,
+    };
   }
 
   /** Auto-generated deadline for a CPT/OPT authorization's end date; upserts by dedupeKey so re-extraction doesn't duplicate. */

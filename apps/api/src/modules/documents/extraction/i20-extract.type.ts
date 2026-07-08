@@ -43,6 +43,15 @@ export interface I20Extract {
   currentSessionStart: string | null;
   currentSessionEnd: string | null;
   authorizations: CptOptAuthorization[];
+  /** true if the "AUTHORIZED REDUCED COURSE LOAD" section has content (not blank). */
+  rclAuthorized: boolean;
+  rclReason: string | null;
+  /** ISO 8601 (yyyy-mm-dd) or null. */
+  rclEndDate: string | null;
+  /** true if the "CHANGE OF STATUS/CAP-GAP EXTENSION" section (I-20 page 2) has content. */
+  changeOfStatusDetected: boolean;
+  capGapDetected: boolean;
+  changeOfStatusNotes: string | null;
   /** Which fields we actually found — drives the "review these" UI. */
   foundFields: string[];
   /** Human-readable note when extraction couldn't do much. */

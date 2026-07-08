@@ -59,6 +59,18 @@ export class AiAdvisorService {
     const programStartDate = profile?.programStartDate?.toLocaleDateString() || 'unknown';
     const university = profile?.university?.name || profile?.universityName || 'unknown';
 
+    const isOnOpt = user?.cptOptRecords.some((r) => r.type === 'OPT' && r.startDate <= now && r.endDate >= now) ?? false;
+    let unemploymentLine = '';
+    if (isOnOpt) {
+      const periods = await this.prisma.optUnemploymentPeriod.findMany({ where: { userId } });
+      const limit = profile?.stemEligible ? 150 : 90;
+      const daysUsed = periods.reduce((sum, p) => {
+        const end = p.endDate ?? now;
+        return sum + Math.max(0, Math.ceil((end.getTime() - p.startDate.getTime()) / 86_400_000));
+      }, 0);
+      unemploymentLine = `\n- OPT unemployment days used: ${daysUsed} of ${limit} allowed`;
+    }
+
     const systemPrompt = `You are Waypoint's immigration advisor for F-1 international students in the US.
 You have access to this student's actual immigration data. Use it to give specific, personalized answers.
 Be concise, warm, and helpful. Use plain English. Never use legal jargon.
@@ -78,7 +90,7 @@ Student profile:
 - STEM eligible: ${profile?.stemEligible ? 'Yes (eligible for 24-month STEM OPT extension)' : 'No'}
 - CPT/OPT history: ${cptOptList}
 - Upcoming deadlines: ${deadlinesList}
-- SEVIS ID: stored securely in Waypoint (do not share in responses, if asked, tell them to view it in Settings > Security or check their I-20)`;
+- SEVIS ID: stored securely in Waypoint (do not share in responses, if asked, tell them to view it in Settings > Security or check their I-20)${unemploymentLine}`;
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },

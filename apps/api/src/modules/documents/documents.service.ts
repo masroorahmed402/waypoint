@@ -45,7 +45,10 @@ export class DocumentsService {
         programOfStudy: null, cipCode: null, isStemDegree: false, degreeLevel: null, programStartDate: null,
         programEndDate: null, startOfClasses: null, issueDate: null,
         currentSessionStart: null, currentSessionEnd: null,
-        authorizations: [], foundFields: [],
+        authorizations: [],
+        rclAuthorized: false, rclReason: null, rclEndDate: null,
+        changeOfStatusDetected: false, capGapDetected: false, changeOfStatusNotes: null,
+        foundFields: [],
         notice: 'Auto-fill currently supports PDF I-20s only. Please enter your details manually.',
       };
     }
@@ -133,8 +136,39 @@ export class DocumentsService {
       if (result.countryOfBirth) personalInfoUpdates.countryOfBirth = result.countryOfBirth;
       if (result.countryOfCitizenship) personalInfoUpdates.countryOfCitizenship = result.countryOfCitizenship;
       if (result.preferredName) personalInfoUpdates.preferredName = result.preferredName;
+      if (result.rclAuthorized) {
+        personalInfoUpdates.onReducedCourseLoad = true;
+        if (result.rclEndDate) personalInfoUpdates.rclEndDate = new Date(result.rclEndDate);
+      }
+      if (result.changeOfStatusDetected || result.capGapDetected) {
+        personalInfoUpdates.changeOfStatusDetected = result.changeOfStatusDetected;
+        personalInfoUpdates.capGapDetected = result.capGapDetected;
+        if (result.changeOfStatusNotes) personalInfoUpdates.changeOfStatusNotes = result.changeOfStatusNotes;
+      }
       if (Object.keys(personalInfoUpdates).length) {
         await this.prisma.studentProfile.updateMany({ where: { userId }, data: personalInfoUpdates });
+      }
+
+      if (result.rclAuthorized && result.rclEndDate) {
+        await this.prisma.deadline.upsert({
+          where: { userId_dedupeKey: { userId, dedupeKey: 'rcl_end' } },
+          create: {
+            userId,
+            source: DeadlineSource.SYSTEM_GENERATED,
+            type: DeadlineType.CUSTOM,
+            title: 'Reduced Course Load authorization ends',
+            dueDate: new Date(result.rclEndDate),
+            dedupeKey: 'rcl_end',
+            notes: 'Your authorized reduced course load ends on this date. You must return to full-time enrollment or obtain a new authorization from your DSO. Dropping below full-time without authorization violates F-1 status.',
+            ruleVersion: 'f1-2026.07',
+          },
+          update: { dueDate: new Date(result.rclEndDate) },
+        });
+      }
+
+      if (result.authorizations.length) {
+        // OPT records just changed, AR-11 relevance (which depends on active OPT) may have flipped.
+        await this.immigration.recomputeSystemDeadlines(userId);
       }
 
       if (result.isStemDegree) {

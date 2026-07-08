@@ -47,7 +47,8 @@ export interface GeneratedDeadline {
     | 'GRACE_PERIOD_END'
     | 'TRAVEL_SIGNATURE'
     | 'STEM_OPT_REPORT'
-    | 'STEM_OPT_EXTENSION_END';
+    | 'STEM_OPT_EXTENSION_END'
+    | 'CUSTOM';
   title: string;
   dueDate: Date;
   notes: string;
@@ -237,7 +238,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
 }
 
 /** System deadlines that need reminder state → persisted via upsert on dedupeKey. */
-export function computeSystemDeadlines(p: ProfileDates): GeneratedDeadline[] {
+export function computeSystemDeadlines(p: ProfileDates, now = new Date()): GeneratedDeadline[] {
   const optOpen = addDays(p.programEndDate, -90);
   const optClose = addDays(p.programEndDate, 60);
   const graceEnd = addDays(p.programEndDate, 60);
@@ -289,6 +290,31 @@ export function computeSystemDeadlines(p: ProfileDates): GeneratedDeadline[] {
         notes: 'Final day of your STEM OPT extension, confirm your next steps with your DSO well before this date.',
       },
     );
+  }
+
+  // AR-11 only matters once a student is on OPT (the school reports address while enrolled).
+  const isOnOpt = (p.cptOptRecords ?? []).some((r) => r.type === 'OPT' && r.startDate <= now && r.endDate >= now);
+  if (isOnOpt) {
+    deadlines.push({
+      dedupeKey: 'ar11_reminder',
+      type: 'CUSTOM',
+      title: 'AR-11 address change required if you move',
+      dueDate: addDays(now, 30),
+      notes:
+        'On OPT, you must file AR-11 within 10 days of any address change. File online at the USCIS AR-11 page. Your employer must also be notified. Failure to report can jeopardize your OPT status.',
+    });
+  }
+
+  // Encourage a one-time I-94 sanity check shortly after entry.
+  if (p.usEntryDate) {
+    deadlines.push({
+      dedupeKey: 'i94_verify',
+      type: 'CUSTOM',
+      title: 'Verify your I-94 record',
+      dueDate: addDays(p.usEntryDate, 14),
+      notes:
+        'Check that your I-94 arrival record matches your I-20 at cbp.dhs.gov/i94. Common errors include wrong admission class or date. Report discrepancies to your DSO immediately.',
+    });
   }
 
   return deadlines;

@@ -30,6 +30,10 @@ interface CptSummary {
   warning: string | null;
 }
 interface DsoContact { name: string; title: string | null; schoolName: string | null }
+interface OptUnemploymentSummary {
+  periods: { id: string; startDate: string; endDate: string | null }[];
+  daysUsed: number; daysRemaining: number; limit: number; warning: string | null;
+}
 interface UscisCase {
   id: string; receiptNumber: string; caseType: string;
   lastStatus: string | null; lastCheckedAt: string | null;
@@ -113,6 +117,19 @@ function Inner() {
   const cpt = useQuery({ queryKey: ['cpt-summary'], queryFn: () => api<CptSummary>('/immigration/cpt-summary') });
   const dso = useQuery({ queryKey: ['dso-contact'], queryFn: () => api<DsoContact | null>('/immigration/dso-contact') });
   const cases = useQuery({ queryKey: ['uscis-cases'], queryFn: () => api<UscisCase[]>('/immigration/cases') });
+  const optUnemployment = useQuery({
+    queryKey: ['opt-unemployment-summary'],
+    queryFn: () => api<OptUnemploymentSummary>('/immigration/opt-unemployment/summary'),
+  });
+
+  const startUnemployment = useMutation({
+    mutationFn: () => api('/immigration/opt-unemployment/start', { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['opt-unemployment-summary'] }),
+  });
+  const endUnemployment = useMutation({
+    mutationFn: () => api('/immigration/opt-unemployment/end', { method: 'POST' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['opt-unemployment-summary'] }),
+  });
 
   const [newReceipt, setNewReceipt] = useState('');
   const [newCaseType, setNewCaseType] = useState(CASE_TYPES[0]);
@@ -417,6 +434,62 @@ function Inner() {
                 {cpt.data.warning}
               </p>
             )}
+          </div>
+        </Card>
+      )}
+
+      {me?.profile?.onReducedCourseLoad && (
+        <Card className="border-amber-200 bg-amber-50">
+          <h2 className="font-display font-semibold text-ink">Reduced Course Load</h2>
+          <p className="mt-2 text-sm text-amber-800">
+            Your I-20 shows an authorized reduced course load{me.profile.rclEndDate ? ` through ${formatDate(me.profile.rclEndDate)}` : ''}.
+            You must return to full-time enrollment or get a new authorization from your DSO before it ends.
+          </p>
+        </Card>
+      )}
+
+      {(me?.profile?.changeOfStatusDetected || me?.profile?.capGapDetected) && (
+        <Card className="border-amber-200 bg-amber-50">
+          <h2 className="font-display font-semibold text-ink">Change of Status / Cap-Gap detected</h2>
+          <p className="mt-2 text-sm text-amber-800">
+            We detected a Change of Status or Cap-Gap entry on your I-20. This is complex, please work closely
+            with your DSO and consider consulting an immigration attorney.
+          </p>
+        </Card>
+      )}
+
+      {!!activeCptOpt && activeCptOpt.type === 'OPT' && optUnemployment.data && (
+        <Card>
+          <h2 className="font-display font-semibold text-ink">OPT unemployment tracker</h2>
+          <div className="mt-3 space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-600">Unemployment days used</span>
+              <span className="font-semibold text-ink">{optUnemployment.data.daysUsed} / {optUnemployment.data.limit} days</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className={`h-full rounded-full ${
+                  optUnemployment.data.daysUsed >= optUnemployment.data.limit - 15
+                    ? 'bg-red-500'
+                    : optUnemployment.data.daysUsed >= optUnemployment.data.limit - 30
+                      ? 'bg-amber-500'
+                      : 'bg-beacon'
+                }`}
+                style={{ width: `${Math.min(100, (optUnemployment.data.daysUsed / optUnemployment.data.limit) * 100)}%` }}
+              />
+            </div>
+            {optUnemployment.data.warning && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 ring-1 ring-red-200">
+                {optUnemployment.data.warning}
+              </p>
+            )}
+            <div className="flex gap-2">
+              {optUnemployment.data.periods.some((p) => !p.endDate) ? (
+                <Button variant="ghost" className="text-xs" onClick={() => endUnemployment.mutate()}>Mark employed again</Button>
+              ) : (
+                <Button variant="ghost" className="text-xs" onClick={() => startUnemployment.mutate()}>Log an unemployment period</Button>
+              )}
+            </div>
           </div>
         </Card>
       )}

@@ -160,6 +160,12 @@ export class PdfI20Extractor implements DocumentExtractor {
     const authorizations = this.parseCptOptTable(flat);
     if (authorizations.length) found.push('authorizations');
 
+    const { rclAuthorized, rclReason, rclEndDate } = this.parseReducedCourseLoad(flat);
+    if (rclAuthorized) found.push('rclAuthorized');
+
+    const { changeOfStatusDetected, capGapDetected, changeOfStatusNotes } = this.parseChangeOfStatus(flat);
+    if (changeOfStatusDetected || capGapDetected) found.push('changeOfStatusDetected');
+
     const gotAnything = found.length > 0;
     let notice = gotAnything
       ? 'Filled from your I-20, please review each field before continuing.'
@@ -199,6 +205,12 @@ export class PdfI20Extractor implements DocumentExtractor {
       currentSessionStart,
       currentSessionEnd,
       authorizations,
+      rclAuthorized,
+      rclReason,
+      rclEndDate,
+      changeOfStatusDetected,
+      capGapDetected,
+      changeOfStatusNotes,
       foundFields: found,
       notice,
     };
@@ -250,6 +262,41 @@ export class PdfI20Extractor implements DocumentExtractor {
       if (trimmed.trim()) return trimmed;
     }
     return null;
+  }
+
+  /** Detects the "AUTHORIZED REDUCED COURSE LOAD" section; a non-blank block after the label means RCL is active. */
+  private parseReducedCourseLoad(text: string): { rclAuthorized: boolean; rclReason: string | null; rclEndDate: string | null } {
+    const block = this.textAfterLabel(text, ['AUTHORIZED REDUCED COURSE LOAD', 'Authorized Reduced Course Load'], 300);
+    if (!block) return { rclAuthorized: false, rclReason: null, rclEndDate: null };
+
+    // Blank sections read back as just whitespace/labels, e.g. the next field's header.
+    const meaningful = block.replace(/\s+/g, ' ').trim();
+    if (!meaningful || meaningful.length < 3) return { rclAuthorized: false, rclReason: null, rclEndDate: null };
+
+    const dates = this.extractDatesAnchoredOnMonth(block);
+    const rclEndDate = dates[dates.length - 1] ?? null;
+    const reasonMatch = meaningful.match(/^([A-Za-z][A-Za-z\s,.'-]{2,80})/);
+    return { rclAuthorized: true, rclReason: reasonMatch?.[1]?.trim() ?? null, rclEndDate };
+  }
+
+  /** Detects the "CHANGE OF STATUS/CAP-GAP EXTENSION" section on I-20 page 2. */
+  private parseChangeOfStatus(text: string): { changeOfStatusDetected: boolean; capGapDetected: boolean; changeOfStatusNotes: string | null } {
+    const block = this.textAfterLabel(text, ['CHANGE OF STATUS/CAP-GAP EXTENSION', 'Change of Status/Cap-Gap Extension'], 300);
+    const capGapMentioned = /cap[\s-]?gap/i.test(text);
+    if (!block) {
+      return { changeOfStatusDetected: false, capGapDetected: capGapMentioned, changeOfStatusNotes: null };
+    }
+
+    const meaningful = block.replace(/\s+/g, ' ').trim();
+    if (!meaningful || meaningful.length < 3) {
+      return { changeOfStatusDetected: false, capGapDetected: capGapMentioned, changeOfStatusNotes: null };
+    }
+
+    return {
+      changeOfStatusDetected: true,
+      capGapDetected: capGapMentioned || /cap[\s-]?gap/i.test(meaningful),
+      changeOfStatusNotes: meaningful.slice(0, 200),
+    };
   }
 
   private dateAfterLabel(text: string, labels: string[]): string | null {
@@ -504,7 +551,10 @@ function baseResult(): I20Extract {
     programStartDate: null,
     programEndDate: null, startOfClasses: null, issueDate: null,
     currentSessionStart: null, currentSessionEnd: null,
-    authorizations: [], foundFields: [], notice: null,
+    authorizations: [],
+    rclAuthorized: false, rclReason: null, rclEndDate: null,
+    changeOfStatusDetected: false, capGapDetected: false, changeOfStatusNotes: null,
+    foundFields: [], notice: null,
   };
 }
 
