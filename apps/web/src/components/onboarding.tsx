@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { uploadAndExtractI20, I20Extract } from '@/lib/i20';
 import { track } from '@/lib/posthog';
 import { Button, Input, Label, Card, Disclaimer } from './ui';
+import { SecurityBadge } from './security-badge';
 import Confetti from './confetti';
 
 const STEPS = ['Upload I-20', 'Program details', 'Personal info', 'Done'];
@@ -189,6 +190,9 @@ export default function Onboarding() {
             </Button>
             <input ref={fileRef} type="file" accept="application/pdf" hidden onChange={onFile} />
             {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          </div>
+          <div className="mt-3">
+            <SecurityBadge variant="banner" />
           </div>
           <button
             type="button"

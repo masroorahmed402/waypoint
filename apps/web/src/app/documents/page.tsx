@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import AppShell from '@/components/app-shell';
 import { Button, Card, Skeleton } from '@/components/ui';
+import { SecurityBadge } from '@/components/security-badge';
 import { formatDeadline, formatDate } from '@/lib/format-date';
 import { showToast } from '@/lib/toast';
 
@@ -220,6 +221,8 @@ function Inner() {
         )}
       </div>
 
+      <SecurityBadge variant="banner" />
+
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {i20Banner && (
@@ -271,6 +274,9 @@ function Inner() {
                   {d.type === 'I20' && primaryI20 === d.id && (
                     <span className="rounded bg-beacon/20 px-2 py-1 text-xs font-medium text-beacon-600">Primary</span>
                   )}
+                </div>
+                <div className="mt-3">
+                  <SecurityBadge />
                 </div>
               </Card>
             );

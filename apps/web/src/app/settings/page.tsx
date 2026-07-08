@@ -4,6 +4,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
 import { Button, Input, Label, Card } from '@/components/ui';
+import { SecurityBadge } from '@/components/security-badge';
 
 export default function SettingsPage() {
   return <AppShell><Inner /></AppShell>;
@@ -61,12 +62,15 @@ function SevisIdCard() {
       ) : (
         <div className="mt-2">
           <div className="rounded-lg bg-slate-50 px-4 py-3 font-mono text-lg tracking-widest text-ink">
-            {sevisId ?? 'Not stored — upload your I-20 to save it'}
+            {sevisId ?? 'Not stored, upload your I-20 to save it'}
           </div>
           <button onClick={() => { setRevealed(false); setPassword(''); setSevisId(null); }}
             className="mt-2 text-xs text-slate-400 hover:text-slate-600">
             Hide
           </button>
+          <div className="mt-2">
+            <SecurityBadge variant="card" />
+          </div>
         </div>
       )}
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
@@ -264,8 +268,11 @@ function Inner() {
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
-                Type <strong>DELETE</strong> to confirm. This removes everything — your profile, timeline,
+                Type <strong>DELETE</strong> to confirm. This removes everything: your profile, timeline,
                 documents, and applications. Cannot be undone.
+              </p>
+              <p className="text-xs text-slate-500">
+                Deleting your account permanently removes all encrypted files from our servers.
               </p>
               <Input
                 value={deleteInput}

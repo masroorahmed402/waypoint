@@ -351,6 +351,26 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Security */}
+      <section className="bg-white py-20">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="font-display text-3xl font-semibold text-ink">Your documents, protected</h2>
+          <div className="mt-10 grid gap-6 sm:grid-cols-3">
+            {[
+              { icon: '🔒', title: 'AES-256 encryption', body: 'The same standard used by banks.' },
+              { icon: '🚫', title: 'Zero data sharing', body: 'Your documents never leave our servers for advertising.' },
+              { icon: '📤', title: 'You own your data', body: 'Export or delete everything instantly.' },
+            ].map((f) => (
+              <div key={f.title} className="rounded-2xl border border-slate-200 p-6">
+                <span className="text-2xl">{f.icon}</span>
+                <p className="mt-3 font-display text-base font-semibold text-ink">{f.title}</p>
+                <p className="mt-1 text-sm text-slate-500">{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* AI advisor showcase */}
       <section className="bg-beacon/15 py-24">
         <div className="mx-auto grid max-w-5xl gap-10 px-6 sm:grid-cols-2 sm:items-center">
