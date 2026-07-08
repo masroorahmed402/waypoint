@@ -20,7 +20,10 @@ export default function Home() {
     <div className="min-h-screen bg-paper">
       {/* nav */}
       <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-        <span className="font-display text-xl font-semibold text-ink">{APP_NAME}</span>
+        <span className="flex items-center gap-2">
+          <span className="font-display text-xl font-semibold text-ink">{APP_NAME}</span>
+          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">AI</span>
+        </span>
         <div className="flex items-center gap-3 text-sm">
           <Link href="/login" className="text-slate-600 hover:text-ink">Log in</Link>
           <Link href="/register" className="rounded-lg bg-ink px-4 py-2 text-white transition hover:bg-ink-700">Get started</Link>
@@ -33,7 +36,7 @@ export default function Home() {
           FOR INTERNATIONAL STUDENTS
         </p>
         <h1 className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-6xl">
-          Never miss an<br />immigration deadline.
+          Your AI immigration advisor,<br />personalized to you.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
           Upload your I-20 and {APP_NAME} builds your personal timeline — OPT windows, travel

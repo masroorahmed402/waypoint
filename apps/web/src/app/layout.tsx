@@ -8,11 +8,11 @@ const display = Fraunces({ subsets: ['latin'], weight: ['400', '500', '600'], va
 const body = Inter({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} — never miss an immigration deadline`,
+  title: `${APP_NAME} — AI-powered immigration advisor for international students`,
   description: DESCRIPTION,
   icons: { icon: '/favicon.svg' },
   openGraph: {
-    title: 'Waypoint — never miss an immigration deadline',
+    title: `${APP_NAME} — never miss an immigration deadline`,
     description: DESCRIPTION,
     images: [{ url: '/og-image.svg', width: 1200, height: 630 }],
   },
