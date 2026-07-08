@@ -72,7 +72,7 @@ Be warm, specific, and actionable. No legal advice. No em dashes, use commas or 
   async sendWeeklyDigest(now = new Date()): Promise<number> {
     const horizon = new Date(now.getTime() + 30 * DAY);
     const users = await this.prisma.user.findMany({
-      where: { deletedAt: null, profile: { isNot: null } },
+      where: { profile: { isNot: null } },
       select: {
         id: true, email: true, firstName: true,
         deadlines: {
@@ -114,14 +114,13 @@ Be warm, specific, and actionable. No legal advice. No em dashes, use commas or 
     const deadlines = await this.prisma.deadline.findMany({
       where: { dismissedAt: null, dueDate: { gte: now, lte: horizon } },
       include: {
-        user: { select: { email: true, firstName: true, deletedAt: true } },
+        user: { select: { email: true, firstName: true } },
         notificationLogs: { select: { checkpoint: true } },
       },
     });
 
     let count = 0;
     for (const d of deadlines) {
-      if (d.user.deletedAt) continue;
       const days = Math.ceil((d.dueDate.getTime() - now.getTime()) / DAY);
       const band = CHECKPOINTS.find((c) => days <= c.at && days > c.floor);
       if (!band) continue;

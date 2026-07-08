@@ -18,7 +18,7 @@ export class UsersService {
 
   async me(userId: string) {
     const user = await this.prisma.user.findFirst({
-      where: { id: userId, deletedAt: null },
+      where: { id: userId },
       select: {
         id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true,
         profile: { include: { university: { select: { id: true, name: true, slug: true, issOfficeUrl: true, issEmail: true, issPhone: true } } } },

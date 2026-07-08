@@ -101,7 +101,7 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
-    if (!user || user.deletedAt) return;
+    if (!user) return;
 
     const raw = randomBytes(32).toString('base64url');
     await this.prisma.passwordResetToken.create({
@@ -125,7 +125,7 @@ export class AuthService {
       where: { tokenHash },
       include: { user: true },
     });
-    if (!stored || stored.usedAt || stored.expiresAt < new Date() || stored.user.deletedAt) {
+    if (!stored || stored.usedAt || stored.expiresAt < new Date()) {
       throw new BadRequestException('This reset link is invalid or has expired');
     }
 
@@ -172,7 +172,6 @@ export class AuthService {
         data: { userId: user.id, provider: 'google', providerAccountId: g.providerAccountId },
       });
     }
-    if (user.deletedAt) throw new UnauthorizedException('Account deactivated');
     return this.issueSession(user, meta);
   }
 
@@ -195,7 +194,7 @@ export class AuthService {
       });
       throw new UnauthorizedException('Session revoked, please log in again');
     }
-    if (stored.expiresAt < new Date() || stored.user.deletedAt) {
+    if (stored.expiresAt < new Date()) {
       throw new UnauthorizedException('Session expired');
     }
 
