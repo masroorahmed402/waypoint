@@ -4,10 +4,12 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { ImmigrationService } from '../immigration/immigration.service';
 import { CreateDocumentDto, UpdateDocumentDto, USER_QUOTA_BYTES } from './dto/document.dto';
-import { DocumentStatus, DocumentType } from '@prisma/client';
+import { DocumentStatus, DocumentType, DeadlineSource, DeadlineType, ApplicationStage } from '@prisma/client';
 import { EXTRACTOR, DocumentExtractor, I20Extract } from './extraction/i20-extract.type';
 import { AppConfig } from '../../config/app.config';
 import { encryptField } from '../../common/util/field-crypto';
+import { AiDocumentExtractor } from './extraction/ai-document.extractor';
+import { readPdfText } from './extraction/pdf-text.util';
 
 @Injectable()
 export class DocumentsService {
@@ -17,6 +19,7 @@ export class DocumentsService {
     @Inject(EXTRACTOR) private extractor: DocumentExtractor,
     private immigration: ImmigrationService,
     private config: AppConfig,
+    private aiExtractor: AiDocumentExtractor,
   ) {}
 
   /**
@@ -213,7 +216,128 @@ export class DocumentsService {
         userId, updated.id, updated.type, updated.fileName, updated.expiryDate,
       );
     }
+
+    if (updated.type === DocumentType.I20) {
+      await this.extractI20(userId, updated.id);
+    } else {
+      await this.extractAndStoreDocumentData(userId, updated.id, updated.type, updated.storageKey);
+    }
+
     return updated;
+  }
+
+  /** Best-effort AI extraction for document types the free parser doesn't cover. Never throws. */
+  private async extractAndStoreDocumentData(userId: string, documentId: string, docType: DocumentType, storageKey: string): Promise<void> {
+    try {
+      const bytes = await this.storage.read(storageKey);
+      const text = await readPdfText(bytes);
+
+      switch (docType) {
+        case DocumentType.PASSPORT:
+          await this.extractPassportData(userId, documentId, text);
+          break;
+        case DocumentType.VISA_STAMP:
+          await this.extractVisaData(userId, documentId, text);
+          break;
+        case DocumentType.OFFER_LETTER:
+          await this.extractOfferLetterData(userId, text);
+          break;
+        case DocumentType.LEASE:
+          await this.extractLeaseData(userId, documentId, text);
+          break;
+        case DocumentType.INSURANCE:
+          await this.extractInsuranceData(userId, documentId, text);
+          break;
+        case DocumentType.TAX:
+          await this.extractTaxData(userId, text);
+          break;
+        default:
+          break;
+      }
+    } catch {
+      // Extraction extras are a bonus, not the primary upload flow.
+    }
+  }
+
+  private async extractPassportData(userId: string, documentId: string, text: string): Promise<void> {
+    const data = await this.aiExtractor.extractPassport(text);
+    const updates: Record<string, unknown> = {};
+    if (data.passportNumber) updates.passportNumberEncrypted = encryptField(data.passportNumber, this.config.fieldEncryptionKey);
+    if (data.dateOfBirth) updates.dateOfBirthEncrypted = encryptField(data.dateOfBirth, this.config.fieldEncryptionKey);
+    if (data.expiryDate) updates.passportExpiry = new Date(data.expiryDate);
+    if (data.nationality) updates.countryOfCitizenship = data.nationality;
+    if (Object.keys(updates).length) {
+      await this.prisma.studentProfile.updateMany({ where: { userId }, data: updates });
+    }
+    if (data.expiryDate) {
+      await this.immigration.upsertDocumentExpiryDeadline(userId, documentId, DocumentType.PASSPORT, 'Passport', new Date(data.expiryDate));
+    }
+  }
+
+  private async extractVisaData(userId: string, documentId: string, text: string): Promise<void> {
+    const data = await this.aiExtractor.extractVisa(text);
+    if (!data.expiryDate) return;
+    await this.prisma.studentProfile.updateMany({
+      where: { userId },
+      data: { visaStampExpiry: new Date(data.expiryDate), ...(data.issueDate && { visaStampIssueDate: new Date(data.issueDate) }) },
+    });
+    await this.immigration.upsertDocumentExpiryDeadline(userId, documentId, DocumentType.VISA_STAMP, 'Visa stamp', new Date(data.expiryDate));
+  }
+
+  private async extractOfferLetterData(userId: string, text: string): Promise<void> {
+    const data = await this.aiExtractor.extractOfferLetter(text);
+    if (!data.companyName || !data.jobTitle) return;
+
+    const existing = await this.prisma.application.findFirst({
+      where: { userId, companyName: { contains: data.companyName, mode: 'insensitive' } },
+    });
+    if (existing) return;
+
+    await this.prisma.application.create({
+      data: {
+        userId,
+        companyName: data.companyName,
+        roleTitle: data.jobTitle,
+        stage: ApplicationStage.OFFER,
+        salaryMin: data.salary ?? undefined,
+        location: data.location ?? undefined,
+        appliedAt: data.startDate ? new Date(data.startDate) : new Date(),
+        events: { create: { toStage: ApplicationStage.OFFER, note: 'Auto-created from offer letter upload' } },
+      },
+    });
+  }
+
+  private async extractLeaseData(userId: string, documentId: string, text: string): Promise<void> {
+    const data = await this.aiExtractor.extractLease(text);
+    if (!data.leaseEndDate) return;
+    await this.immigration.upsertDocumentExpiryDeadline(userId, documentId, DocumentType.LEASE, 'Lease', new Date(data.leaseEndDate));
+  }
+
+  private async extractInsuranceData(userId: string, documentId: string, text: string): Promise<void> {
+    const data = await this.aiExtractor.extractInsurance(text);
+    if (!data.expiryDate) return;
+    await this.immigration.upsertDocumentExpiryDeadline(userId, documentId, DocumentType.INSURANCE, 'Health insurance', new Date(data.expiryDate));
+  }
+
+  private async extractTaxData(userId: string, text: string): Promise<void> {
+    const data = await this.aiExtractor.extractTax(text);
+    if (!data.ficaWithheld || data.ficaWithheld <= 0) return;
+
+    const taxYear = data.taxYear ?? new Date().getFullYear() - 1;
+    await this.prisma.deadline.upsert({
+      where: { userId_dedupeKey: { userId, dedupeKey: `fica-refund-${taxYear}` } },
+      create: {
+        userId,
+        source: DeadlineSource.SYSTEM_GENERATED,
+        type: DeadlineType.CUSTOM,
+        title: `FICA tax refund, ${taxYear}`,
+        dueDate: new Date(`${taxYear + 1}-04-15`),
+        dedupeKey: `fica-refund-${taxYear}`,
+        notes: `Your W-2 shows $${data.ficaWithheld} in Social Security (FICA) was withheld. F-1 students are exempt from FICA for the first 5 years. You may be eligible for a refund, file Form 843 and 8316 with the IRS.`,
+        ruleVersion: 'f1-2026.07',
+      },
+      update: {},
+    });
   }
 
   async downloadUrl(userId: string, id: string) {

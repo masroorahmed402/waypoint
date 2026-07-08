@@ -5,6 +5,7 @@ import { StorageModule } from '../storage/storage.module';
 import { ImmigrationModule } from '../immigration/immigration.module';
 import { EXTRACTOR } from './extraction/i20-extract.type';
 import { PdfI20Extractor } from './extraction/pdf-i20.extractor';
+import { AiDocumentExtractor } from './extraction/ai-document.extractor';
 import { AppConfig } from '../../config/app.config';
 
 @Module({
@@ -13,6 +14,7 @@ import { AppConfig } from '../../config/app.config';
   providers: [
     DocumentsService,
     AppConfig,
+    AiDocumentExtractor,
     // Free PDF extractor today; swap for an AI extractor later without touching callers.
     { provide: EXTRACTOR, useClass: PdfI20Extractor },
   ],

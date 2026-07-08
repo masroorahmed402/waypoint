@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DocumentExtractor, I20Extract, CptOptAuthorization } from './i20-extract.type';
+import { readPdfText } from './pdf-text.util';
 
 /**
  * Free, on-server I-20 extractor. Reads the PDF text layer (no AI, no API, no cost)
@@ -206,15 +207,7 @@ export class PdfI20Extractor implements DocumentExtractor {
   // ── PDF text ────────────────────────────────────────────────────────────
 
   private async readText(bytes: Buffer): Promise<string> {
-    try {
-      // dynamic import avoids pdf-parse's debug-on-require quirk
-      const mod: any = await import('pdf-parse');
-      const pdf = mod.default ?? mod;
-      const data = await pdf(bytes);
-      return String(data.text ?? '');
-    } catch {
-      return '';
-    }
+    return readPdfText(bytes);
   }
 
   // ── field helpers ───────────────────────────────────────────────────────
