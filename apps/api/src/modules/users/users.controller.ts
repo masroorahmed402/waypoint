@@ -1,7 +1,8 @@
-import { Controller, Get, Patch, Put, Delete, Body, HttpCode } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Put, Delete, Body, HttpCode } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { UsersService } from './users.service';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
-import { UpdateMeDto, UpsertProfileDto } from './users.dto';
+import { UpdateMeDto, UpsertProfileDto, RevealSevisIdDto } from './users.dto';
 
 @Controller('users')
 export class UsersController {
@@ -18,6 +19,12 @@ export class UsersController {
   @Put('me/profile')
   upsertProfile(@CurrentUser() u: JwtUser, @Body() dto: UpsertProfileDto) {
     return this.users.upsertProfile(u.sub, dto);
+  }
+
+  @Post('me/sevis-id')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  getSevisId(@CurrentUser() u: JwtUser, @Body() dto: RevealSevisIdDto) {
+    return this.users.getSevisId(u.sub, dto.password);
   }
 
   @Delete('me')

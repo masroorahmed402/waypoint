@@ -1,8 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, Inject } from '@nestjs/common';
+import * as argon2 from 'argon2';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateMeDto, UpsertProfileDto } from './users.dto';
 import { ImmigrationService } from '../immigration/immigration.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
+import { AppConfig } from '../../config/app.config';
+import { decryptField } from '../../common/util/field-crypto';
 
 @Injectable()
 export class UsersService {
@@ -10,6 +13,7 @@ export class UsersService {
     private prisma: PrismaService,
     private immigration: ImmigrationService,
     @Inject(STORAGE_SERVICE) private storage: StorageService,
+    private config: AppConfig,
   ) {}
 
   async me(userId: string) {
@@ -67,6 +71,23 @@ export class UsersService {
     // Profile dates changed → regenerate system deadlines (idempotent upsert).
     await this.immigration.recomputeSystemDeadlines(userId);
     return profile;
+  }
+
+  async getSevisId(userId: string, password: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: true },
+    });
+    if (!user || !user.passwordHash) throw new UnauthorizedException();
+
+    const valid = await argon2.verify(user.passwordHash, password).catch(() => false);
+    if (!valid) throw new UnauthorizedException('Incorrect password');
+
+    const profile = user.profile;
+    if (!profile?.sevisIdEncrypted) return { sevisId: null };
+
+    const sevisId = decryptField(profile.sevisIdEncrypted, this.config.fieldEncryptionKey);
+    return { sevisId };
   }
 
   async hardDelete(userId: string) {

@@ -6,6 +6,10 @@ export class UpdateMeDto {
   @IsOptional() @IsString() @MaxLength(80) lastName?: string;
 }
 
+export class RevealSevisIdDto {
+  @IsString() password: string;
+}
+
 export class UpsertProfileDto {
   @IsOptional() @IsString() universityId?: string;
   @IsOptional() @IsString() @MaxLength(200) universityName?: string;

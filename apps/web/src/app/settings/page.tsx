@@ -11,6 +11,59 @@ export default function SettingsPage() {
 
 const toDateInput = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
 
+function SevisIdCard() {
+  const [revealed, setRevealed] = useState(false);
+  const [password, setPassword] = useState('');
+  const [sevisId, setSevisId] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function reveal() {
+    setBusy(true); setError('');
+    try {
+      // Re-authenticate to get SEVIS ID
+      const res = await api<{ sevisId: string | null }>('/users/me/sevis-id', {
+        method: 'POST',
+        body: JSON.stringify({ password }),
+      });
+      setSevisId(res.sevisId);
+      setRevealed(true);
+    } catch {
+      setError('Incorrect password');
+    } finally { setBusy(false); }
+  }
+
+  return (
+    <Card className="p-6">
+      <h2 className="font-display text-lg font-semibold text-ink">SEVIS ID</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Your SEVIS ID is stored encrypted. Enter your password to view it.
+      </p>
+      {!revealed ? (
+        <div className="mt-3 flex gap-2">
+          <Input type="password" placeholder="Your password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && reveal()} />
+          <Button onClick={reveal} disabled={busy || !password}>
+            {busy ? 'Verifying…' : 'View'}
+          </Button>
+        </div>
+      ) : (
+        <div className="mt-3">
+          <div className="rounded-lg bg-slate-50 px-4 py-3 font-mono text-lg tracking-widest text-ink">
+            {sevisId ?? 'Not stored — upload your I-20 to save it'}
+          </div>
+          <button onClick={() => { setRevealed(false); setPassword(''); setSevisId(null); }}
+            className="mt-2 text-xs text-slate-400 hover:text-slate-600">
+            Hide
+          </button>
+        </div>
+      )}
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+    </Card>
+  );
+}
+
 function Inner() {
   const { me, refreshMe, logout } = useAuth();
   const [firstName, setFirstName] = useState(me?.firstName ?? '');
@@ -96,6 +149,8 @@ function Inner() {
           </div>
         </div>
       </Card>
+
+      <SevisIdCard />
 
       <Card className="p-6">
         <h2 className="font-display text-lg font-semibold text-ink">Academic profile</h2>
