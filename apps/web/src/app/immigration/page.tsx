@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, apiBlob } from '@/lib/api';
 import AppShell from '@/components/app-shell';
 import { Button, Card, Disclaimer } from '@/components/ui';
+import { markDsoEmailDrafted } from '@/lib/engagement';
 
 interface Milestone {
   key: string; label: string; date?: string;
@@ -123,6 +124,7 @@ function Inner() {
       });
       if (!res) { setDraftError('AI advisor is not configured yet.'); return; }
       setDraftResult(res);
+      markDsoEmailDrafted();
     } catch (e: any) {
       setDraftError(e.message ?? 'Could not generate a draft.');
     } finally {

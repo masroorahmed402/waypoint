@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
 import { Button, Card } from '@/components/ui';
 import { APP_NAME } from '@/lib/brand';
+import { markAdvisorUsed } from '@/lib/engagement';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -49,6 +50,7 @@ function AdvisorInner() {
         body: JSON.stringify({ question, history }),
       });
       setMessages((prev) => [...prev, { role: 'assistant', content: res.answer }]);
+      markAdvisorUsed();
     } catch {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }]);
     } finally {

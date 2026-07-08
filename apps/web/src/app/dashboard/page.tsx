@@ -7,6 +7,7 @@ import AppShell from '@/components/app-shell';
 import Onboarding from '@/components/onboarding';
 import ArrivalChecklist from '@/components/arrival-checklist';
 import { Card } from '@/components/ui';
+import { hasUsedAdvisor, hasDraftedDsoEmail } from '@/lib/engagement';
 
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string }
 interface CptOptRecord { type: string; startDate: string; endDate: string; employerName: string | null }
@@ -96,7 +97,7 @@ function DashboardInner() {
 
   const docs = useQuery({
     queryKey: ['documents'],
-    queryFn: () => api<{ id: string }[]>('/documents'),
+    queryFn: () => api<{ id: string; type: string }[]>('/documents'),
     enabled: hasProfile,
   });
 
@@ -133,6 +134,11 @@ function DashboardInner() {
   const doneCount = setupSteps.filter((s) => s.done).length;
   const urgentCount = next.filter((d) => daysUntil(d.dueDate) <= 7).length;
 
+  const hasPassport = (docs.data ?? []).some((d) => d.type === 'PASSPORT');
+  const monthsToProgramEnd = Math.round(
+    (new Date(me!.profile!.programEndDate).getTime() - Date.now()) / (30 * 86_400_000),
+  );
+
   const scoreItems: ScoreItem[] = [
     { label: 'Profile filled in', points: 25, earned: hasProfile, href: '/settings' },
     { label: 'I-20 uploaded', points: 20, earned: (docs.data?.length ?? 0) > 0, href: '/documents' },
@@ -140,8 +146,25 @@ function DashboardInner() {
     { label: 'At least 1 job application', points: 15, earned: pipeline.length > 0, href: '/applications' },
     { label: 'SEVIS ID stored', points: 10, earned: !!(me!.profile as any)?.sevisIdEncrypted, href: '/documents' },
     { label: 'DSO contact saved', points: 10, earned: !!dso.data, href: '/immigration' },
-    { label: 'Push notifications enabled', points: 5, earned: false, disabled: true },
+    { label: 'Latest U.S. arrival date set', points: 5, earned: !!me!.profile!.usEntryDate, href: '/settings' },
+    { label: 'Asked the AI advisor a question', points: 5, earned: hasUsedAdvisor(), href: '/advisor' },
+    { label: 'DSO email drafted', points: 5, earned: hasDraftedDsoEmail(), href: '/immigration' },
   ];
+
+  const recommendations = [
+    !hasPassport && {
+      icon: '🛂', title: 'Upload your passport', href: '/documents',
+      description: 'Keep a secure copy on hand and get expiry reminders before it lapses.',
+    },
+    monthsToProgramEnd <= 18 && monthsToProgramEnd > 0 && {
+      icon: '🎓', title: 'Check your OPT eligibility', href: '/advisor',
+      description: 'Your program ends in about ' + monthsToProgramEnd + ' months — ask the advisor when your OPT window opens.',
+    },
+    pipeline.length === 0 && {
+      icon: '💼', title: 'Add job applications', href: '/applications',
+      description: 'Track applications and see H-1B sponsorship history before you apply.',
+    },
+  ].filter((r): r is { icon: string; title: string; href: string; description: string } => !!r).slice(0, 3);
 
   return (
     <div className="space-y-8">
@@ -208,6 +231,22 @@ function DashboardInner() {
       <ArrivalChecklist programStartDate={me!.profile!.programStartDate} />
 
       <ProfileStrength items={scoreItems} />
+
+      {recommendations.length > 0 && (
+        <div>
+          <h2 className="font-display font-semibold text-ink">Recommended next steps</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {recommendations.map((r) => (
+              <Card key={r.title} className="flex flex-col gap-2">
+                <span className="text-2xl">{r.icon}</span>
+                <p className="text-sm font-medium text-ink">{r.title}</p>
+                <p className="flex-1 text-xs text-slate-500">{r.description}</p>
+                <Link href={r.href} className="text-sm font-medium text-ink underline">Go →</Link>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="overflow-hidden">
