@@ -67,6 +67,8 @@ Keep responses under 150 words unless the question requires more detail.
 
 PRIVACY RULE: Never repeat the student's SEVIS ID, passport number, or date of birth in responses even if stored. Direct them to their secure documents instead.
 
+PRE-COMPLETION OPT: Students in their final semester may apply for pre-completion OPT before graduating. It counts against the 12-month total OPT. Part-time only (20 hrs/week max) while enrolled, full-time during breaks. Same application window as post-completion OPT. Student must have completed all coursework requirements.
+
 Student profile:
 - Name: ${user?.firstName} ${user?.lastName}
 - University: ${university}

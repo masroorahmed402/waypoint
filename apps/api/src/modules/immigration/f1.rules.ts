@@ -141,6 +141,21 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
     });
   }
 
+  // Pre-completion OPT: an option worth surfacing once a student is within their
+  // final year, separate from the post-completion window computed below.
+  const monthsUntilEnd = (p.programEndDate.getTime() - now.getTime()) / (DAY * 30);
+  if (monthsUntilEnd > 0 && monthsUntilEnd <= 12) {
+    items.push({
+      key: 'pre_completion_opt',
+      label: 'Pre-completion OPT option',
+      date: now,
+      status: 'CURRENT',
+      explanation:
+        'You may be eligible for Pre-completion OPT if you are in your final semester or have completed all coursework. It is part-time (20 hrs/week max) while school is in session, full-time during official breaks, and counts against your 12-month total OPT limit. Talk to your DSO if you have a job offer before graduation.',
+      sourceUrl: 'https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states',
+    });
+  }
+
   // OPT filing window: opens 90 days before program end, closes 60 days after.
   const optOpen = addDays(p.programEndDate, -90);
   const optClose = addDays(p.programEndDate, 60);
