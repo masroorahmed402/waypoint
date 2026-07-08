@@ -16,6 +16,15 @@ export interface I20Extract {
   sevisId: string | null;
   surname: string | null;
   givenName: string | null;
+  /** GIVEN NAME + SURNAME combined, e.g. "Priya Sharma" — null unless both parts were found. */
+  fullName: string | null;
+  preferredName: string | null;
+  countryOfBirth: string | null;
+  countryOfCitizenship: string | null;
+  /** ISO 8601 (yyyy-mm-dd) or null. Stored encrypted — never returned to any non-owner. */
+  dateOfBirth: string | null;
+  admissionNumber: string | null;
+  passportName: string | null;
   schoolName: string | null;
   schoolOfficialName: string | null;
   schoolOfficialTitle: string | null;

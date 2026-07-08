@@ -13,7 +13,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api/v1';
 export default function Register() {
   const router = useRouter();
   const { refreshMe } = useAuth();
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -45,16 +45,15 @@ export default function Register() {
         <p className="mt-1 text-sm text-slate-500">Start tracking your immigration timeline and job search.</p>
 
         <div className="mt-5 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>First name</Label><Input aria-label="First name" value={form.firstName} onChange={set('firstName')} /></div>
-            <div><Label>Last name</Label><Input aria-label="Last name" value={form.lastName} onChange={set('lastName')} /></div>
-          </div>
           <div><Label>Email</Label><Input aria-label="Email" type="email" value={form.email} onChange={set('email')} /></div>
           <div>
             <Label>Password</Label>
             <Input aria-label="Password" type="password" value={form.password} onChange={set('password')} placeholder="At least 10 characters" />
-            <p className="mt-1 text-xs text-slate-400">Use a passphrase of a few unrelated words — longer is stronger.</p>
+            <p className="mt-1 text-xs text-slate-400">Use a passphrase of a few unrelated words, longer is stronger.</p>
           </div>
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+            Your name and details will be auto-filled when you upload your I-20. Your data is encrypted end-to-end. We never sell or share it.
+          </p>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <Button onClick={submit} disabled={busy} className="w-full">
             {busy ? 'Creating…' : 'Create account'}

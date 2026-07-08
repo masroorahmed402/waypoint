@@ -47,10 +47,13 @@ export class AuthService {
   async register(dto: RegisterDto, meta: TokenMeta): Promise<SessionPair> {
     const email = dto.email.toLowerCase().trim();
 
-    const strength = zxcvbn(dto.password, [email, dto.firstName, dto.lastName]);
+    const firstName = dto.firstName?.trim() || 'Student';
+    const lastName = dto.lastName?.trim() || '';
+
+    const strength = zxcvbn(dto.password, [email, firstName, lastName]);
     if (strength.score < 3) {
       throw new BadRequestException(
-        'Password too weak — use a longer passphrase or mix of unrelated words.',
+        'Password too weak, use a longer passphrase or mix of unrelated words.',
       );
     }
 
@@ -61,8 +64,8 @@ export class AuthService {
       data: {
         email,
         passwordHash: await argon2.hash(dto.password, ARGON2_OPTS),
-        firstName: dto.firstName.trim(),
-        lastName: dto.lastName.trim(),
+        firstName,
+        lastName,
       },
     });
     const session = await this.issueSession(user, meta);

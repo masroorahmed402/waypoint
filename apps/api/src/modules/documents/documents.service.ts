@@ -35,7 +35,9 @@ export class DocumentsService {
     if (doc.contentType !== 'application/pdf') {
       return {
         hasTextLayer: false,
-        sevisId: null, surname: null, givenName: null, schoolName: null,
+        sevisId: null, surname: null, givenName: null, fullName: null,
+        preferredName: null, countryOfBirth: null, countryOfCitizenship: null,
+        dateOfBirth: null, admissionNumber: null, passportName: null, schoolName: null,
         schoolOfficialName: null, schoolOfficialTitle: null,
         programOfStudy: null, cipCode: null, isStemDegree: false, degreeLevel: null, programStartDate: null,
         programEndDate: null, startOfClasses: null, issueDate: null,
@@ -109,6 +111,27 @@ export class DocumentsService {
           where: { userId },
           data: { sevisIdEncrypted: encryptField(result.sevisId, this.config.fieldEncryptionKey) },
         });
+      }
+
+      // The I-20 is the authoritative source for the student's legal name — registration
+      // no longer asks for it, so fill it in here the first time we have both parts.
+      if (result.givenName && result.surname) {
+        await this.prisma.user.update({
+          where: { id: userId },
+          data: { firstName: result.givenName, lastName: result.surname },
+        });
+      }
+
+      const personalInfoUpdates: Record<string, unknown> = {};
+      if (result.dateOfBirth) {
+        personalInfoUpdates.dateOfBirthEncrypted = encryptField(result.dateOfBirth, this.config.fieldEncryptionKey);
+      }
+      if (result.admissionNumber) personalInfoUpdates.admissionNumber = result.admissionNumber;
+      if (result.countryOfBirth) personalInfoUpdates.countryOfBirth = result.countryOfBirth;
+      if (result.countryOfCitizenship) personalInfoUpdates.countryOfCitizenship = result.countryOfCitizenship;
+      if (result.preferredName) personalInfoUpdates.preferredName = result.preferredName;
+      if (Object.keys(personalInfoUpdates).length) {
+        await this.prisma.studentProfile.updateMany({ where: { userId }, data: personalInfoUpdates });
       }
 
       if (result.isStemDegree) {

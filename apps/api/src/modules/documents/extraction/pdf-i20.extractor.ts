@@ -50,6 +50,21 @@ export class PdfI20Extractor implements DocumentExtractor {
     if (surname) found.push('surname');
     const givenName = this.labelValue(flat, ['GIVEN NAME', 'Given Name', 'First Name']);
     if (givenName) found.push('givenName');
+    const fullName = givenName && surname ? `${givenName} ${surname}` : null;
+    if (fullName) found.push('fullName');
+
+    const preferredName = this.labelValue(flat, ['PREFERRED NAME', 'Preferred Name']);
+    if (preferredName) found.push('preferredName');
+    const passportName = this.labelValue(flat, ['PASSPORT NAME', 'Passport Name']);
+    if (passportName) found.push('passportName');
+    const countryOfBirth = this.labelValue(flat, ['COUNTRY OF BIRTH', 'Country of Birth']);
+    if (countryOfBirth) found.push('countryOfBirth');
+    const countryOfCitizenship = this.labelValue(flat, ['COUNTRY OF CITIZENSHIP', 'Country of Citizenship']);
+    if (countryOfCitizenship) found.push('countryOfCitizenship');
+    const dateOfBirth = this.dateAfterLabel(flat, ['DATE OF BIRTH', 'Date of Birth']);
+    if (dateOfBirth) found.push('dateOfBirth');
+    const admissionNumber = this.labelValue(flat, ['ADMISSION NUMBER', 'Admission Number']);
+    if (admissionNumber) found.push('admissionNumber');
 
     const schoolName = this.labelValue(flat, ['SCHOOL NAME', 'School Name', 'Name of School']);
     if (schoolName) found.push('schoolName');
@@ -162,6 +177,13 @@ export class PdfI20Extractor implements DocumentExtractor {
       sevisId,
       surname,
       givenName,
+      fullName,
+      preferredName,
+      countryOfBirth,
+      countryOfCitizenship,
+      dateOfBirth,
+      admissionNumber,
+      passportName,
       schoolName,
       schoolOfficialName,
       schoolOfficialTitle,
@@ -481,7 +503,9 @@ export class PdfI20Extractor implements DocumentExtractor {
 function baseResult(): I20Extract {
   return {
     hasTextLayer: true,
-    sevisId: null, surname: null, givenName: null, schoolName: null,
+    sevisId: null, surname: null, givenName: null, fullName: null,
+    preferredName: null, countryOfBirth: null, countryOfCitizenship: null,
+    dateOfBirth: null, admissionNumber: null, passportName: null, schoolName: null,
     schoolOfficialName: null, schoolOfficialTitle: null,
     programOfStudy: null, cipCode: null, isStemDegree: false, degreeLevel: null,
     programStartDate: null,

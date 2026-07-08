@@ -114,6 +114,16 @@ model StudentProfile {
   stemEligible     Boolean     @default(false)
   cipCode          String? // from I-20 MAJOR 1, e.g. "11.0201" — drives stemEligible auto-detection
   sevisIdEncrypted String? // AES-256-GCM, app-layer
+  dateOfBirthEncrypted    String? // AES-256-GCM, app-layer
+  admissionNumber         String?
+  countryOfBirth          String?
+  countryOfCitizenship    String?
+  preferredName           String?
+  passportNumberEncrypted String? // AES-256-GCM, app-layer; from passport document
+  passportExpiry          DateTime?
+  visaStampExpiry         DateTime?
+  visaStampIssueDate      DateTime?
+  i94Number               String?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
