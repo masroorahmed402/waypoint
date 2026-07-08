@@ -72,9 +72,7 @@ Student profile:
 - Program: ${programStartDate} to ${programEndDate}
 - STEM eligible: ${profile?.stemEligible ? 'Yes (eligible for 24-month STEM OPT extension)' : 'No'}
 - CPT/OPT history: ${cptOptList}
-- Upcoming deadlines: ${deadlinesList}
-
-Always end immigration-related answers with: "Confirm this with your DSO before taking action."`;
+- Upcoming deadlines: ${deadlinesList}`;
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
