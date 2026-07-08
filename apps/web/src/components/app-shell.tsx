@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import { clsx } from './clsx';
 import { APP_NAME } from '@/lib/brand';
 import NotificationBell from './notification-bell';
+import ToastHost from './toast-host';
 
 function SparkleIcon() {
   return (
@@ -110,6 +111,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         )}
       </header>
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <ToastHost />
     </div>
   );
 }

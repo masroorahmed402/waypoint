@@ -31,8 +31,8 @@ export function Label({ children }: { children: React.ReactNode }) {
   return <label className="mb-1 block text-sm font-medium text-slate-700">{children}</label>;
 }
 
-export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={clsx('rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md', className)}>{children}</div>;
+export function Card({ children, className, style }: { children: React.ReactNode; className?: string; style?: React.CSSProperties }) {
+  return <div style={style} className={clsx('rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md', className)}>{children}</div>;
 }
 
 export function Skeleton({ className }: { className?: string }) {

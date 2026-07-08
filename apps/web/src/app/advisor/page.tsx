@@ -1,5 +1,6 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
@@ -22,11 +23,12 @@ const SUGGESTED = [
 ];
 
 export default function AdvisorPage() {
-  return <AppShell><AdvisorInner /></AppShell>;
+  return <AppShell><Suspense fallback={null}><AdvisorInner /></Suspense></AppShell>;
 }
 
 function AdvisorInner() {
   const { me } = useAuth();
+  const searchParams = useSearchParams();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,12 @@ function AdvisorInner() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q) send(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function send(question: string) {
     if (!question.trim() || loading) return;
