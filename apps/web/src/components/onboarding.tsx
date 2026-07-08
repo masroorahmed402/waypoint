@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { uploadAndExtractI20, I20Extract } from '@/lib/i20';
 import { track } from '@/lib/posthog';
 import { Button, Input, Label, Card, Disclaimer } from './ui';
+import Confetti from './confetti';
 
 const STEPS = ['Upload I-20', 'Program details', 'Personal info', 'Done'];
 
@@ -60,6 +61,7 @@ export default function Onboarding() {
   const [sevisId, setSevisId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const set = (k: string) => (e: any) => {
     setF({ ...f, [k]: e.target.value });
@@ -154,6 +156,8 @@ export default function Onboarding() {
       track('onboarding_complete');
       await refreshMe();
       setStep(3);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 1800);
     } catch (e: any) { setError(e.message); } finally { setBusy(false); }
   }
 
@@ -164,6 +168,7 @@ export default function Onboarding() {
 
   return (
     <Card className="mx-auto max-w-lg">
+      {showConfetti && <Confetti />}
       <h1 className="text-xl font-semibold">Let&apos;s set up your timeline</h1>
       <p className="mt-1 text-sm text-slate-500">
         Your key dates power deadline reminders. You can change them anytime.
