@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppConfig } from '../../config/app.config';
 
-const MODEL = 'llama-3.1-70b-versatile';
+const MODEL = 'llama-3.3-70b-versatile';
 
 @Injectable()
 export class AiAdvisorService {
