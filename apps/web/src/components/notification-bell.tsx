@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { formatDeadline } from '@/lib/format-date';
 
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string }
 
@@ -91,7 +92,7 @@ export default function NotificationBell() {
                   >
                     <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
                     <span className="flex-1 truncate">{d.title}</span>
-                    <span className="shrink-0 text-xs text-slate-400">{n <= 0 ? 'today' : `${n}d`}</span>
+                    <span className="shrink-0 text-xs text-slate-400">{formatDeadline(d.dueDate)}</span>
                   </Link>
                 );
               })
