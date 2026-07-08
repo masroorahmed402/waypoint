@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { computeTimeline, computeSystemDeadlines, RULE_VERSION } from './f1.rules';
+import { lookupTaxTreaty } from './tax-treaties';
 import { CreateDeadlineDto, UpdateDeadlineDto } from './dto/deadline.dto';
 import { DeadlineSource, DeadlineType } from '@prisma/client';
 
@@ -73,6 +74,29 @@ export class ImmigrationService {
         },
       });
     }
+
+    await this.ensureTaxFilingReminder(userId);
+  }
+
+  /** F-1 students must file US taxes (at minimum Form 8843) every year regardless of income. Idempotent per calendar year. */
+  private async ensureTaxFilingReminder(userId: string) {
+    const currentYear = new Date().getFullYear();
+    const dedupeKey = `tax-${currentYear}`;
+    await this.prisma.deadline.upsert({
+      where: { userId_dedupeKey: { userId, dedupeKey } },
+      create: {
+        userId,
+        source: DeadlineSource.SYSTEM_GENERATED,
+        type: DeadlineType.TAX_FILING,
+        title: `${currentYear} tax return due`,
+        dueDate: new Date(`${currentYear}-04-15`),
+        dedupeKey,
+        notes:
+          'F-1 students must file US taxes even if you had no income. File Form 8843 at minimum. If you had income, also file 1040NR. Use Sprintax or a tax professional experienced with international student taxes.',
+        ruleVersion: RULE_VERSION,
+      },
+      update: {},
+    });
   }
 
   /** Called by DocumentsService when a document with expiryDate is confirmed. */
@@ -224,6 +248,14 @@ export class ImmigrationService {
 
   async getDsoContact(userId: string) {
     return this.prisma.dsoContact.findUnique({ where: { userId } });
+  }
+
+  async getTaxTreaty(userId: string) {
+    const profile = await this.prisma.studentProfile.findUnique({ where: { userId } });
+    return {
+      countryOfCitizenship: profile?.countryOfCitizenship ?? null,
+      note: lookupTaxTreaty(profile?.countryOfCitizenship),
+    };
   }
 
   /** Marks the start of an OPT unemployment period (e.g. between jobs). Only one open period at a time. */

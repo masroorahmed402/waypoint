@@ -3,6 +3,7 @@ import OpenAI from 'openai';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppConfig } from '../../config/app.config';
 import { decryptField } from '../../common/util/field-crypto';
+import { lookupTaxTreaty } from './tax-treaties';
 
 const MODEL = 'llama-3.3-70b-versatile';
 
@@ -90,6 +91,7 @@ Student profile:
 - STEM eligible: ${profile?.stemEligible ? 'Yes (eligible for 24-month STEM OPT extension)' : 'No'}
 - CPT/OPT history: ${cptOptList}
 - Upcoming deadlines: ${deadlinesList}
+- Tax treaty (${profile?.countryOfCitizenship || 'citizenship unknown'}): ${lookupTaxTreaty(profile?.countryOfCitizenship)}
 - SEVIS ID: stored securely in Waypoint (do not share in responses, if asked, tell them to view it in Settings > Security or check their I-20)${unemploymentLine}`;
 
     const messages = [

@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
@@ -80,6 +81,11 @@ function SevisIdCard() {
 
 function Inner() {
   const { me, refreshMe, logout } = useAuth();
+  const taxTreaty = useQuery({
+    queryKey: ['tax-treaty'],
+    queryFn: () => api<{ countryOfCitizenship: string | null; note: string }>('/immigration/tax-treaty'),
+    enabled: !!me?.profile,
+  });
   const [firstName, setFirstName] = useState(me?.firstName ?? '');
   const [lastName, setLastName] = useState(me?.lastName ?? '');
   const [saved, setSaved] = useState(false);
@@ -223,6 +229,14 @@ function Inner() {
           </div>
         </div>
       </Card>
+
+      {taxTreaty.data?.countryOfCitizenship && (
+        <Card className="p-6">
+          <SectionHeading icon="💰" title="Tax treaty status" subtitle={`Based on your citizenship: ${taxTreaty.data.countryOfCitizenship}`} />
+          <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{taxTreaty.data.note}</p>
+          <p className="mt-2 text-xs text-slate-400">Informational only, not tax advice. Consult a tax professional or IRS Publication 901.</p>
+        </Card>
+      )}
 
       <Card className="p-6">
         <SectionHeading icon="🔐" title="Security" subtitle="Your SEVIS ID and account access." />

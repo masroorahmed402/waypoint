@@ -26,6 +26,9 @@ export class ImmigrationController {
   @Get('dso-contact')
   dsoContact(@CurrentUser() u: JwtUser) { return this.svc.getDsoContact(u.sub); }
 
+  @Get('tax-treaty')
+  taxTreaty(@CurrentUser() u: JwtUser) { return this.svc.getTaxTreaty(u.sub); }
+
   @Post('opt-unemployment/start')
   startOptUnemployment(@CurrentUser() u: JwtUser) { return this.svc.startOptUnemployment(u.sub); }
 
