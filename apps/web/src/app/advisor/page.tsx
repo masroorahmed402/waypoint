@@ -28,6 +28,8 @@ const SUGGESTED = [
   'Can I travel internationally right now?',
   'Draft an email to my DSO about OPT',
   'What happens during the 60-day grace period?',
+  'Practice with me for a visa interview',
+  "How do I answer 'are you authorized to work in the US?'",
 ];
 
 const FOLLOW_UPS: { match: RegExp; questions: string[] }[] = [
@@ -287,6 +289,7 @@ function AdvisorInner() {
               placeholder="Ask anything about your visa, OPT, CPT, or immigration timeline..."
               className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10"
             />
+            <VoiceInput onResult={(text) => { setInput(text); send(text); }} />
             <Button onClick={() => send(input)} disabled={loading || !input.trim()}>
               Send
             </Button>
@@ -297,5 +300,44 @@ function AdvisorInner() {
         </div>
       </div>
     </div>
+  );
+}
+
+function VoiceInput({ onResult }: { onResult: (text: string) => void }) {
+  const [listening, setListening] = useState(false);
+
+  function startListening() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('Voice input not supported in this browser. Try Chrome.');
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      onResult(transcript);
+    };
+
+    recognition.start();
+  }
+
+  return (
+    <button
+      onClick={startListening}
+      type="button"
+      title={listening ? 'Listening…' : 'Voice input'}
+      className={`rounded-xl px-4 py-3 text-sm transition ${
+        listening ? 'animate-pulse bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+      }`}
+    >
+      🎤
+    </button>
   );
 }

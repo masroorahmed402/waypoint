@@ -1,9 +1,11 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import OpenAI from 'openai';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EMAIL_SERVICE, EmailService } from './email.interface';
 import { ReminderCheckpoint } from '@prisma/client';
 import { APP_NAME } from '../../config/brand';
+import { AppConfig } from '../../config/app.config';
 
 const DAY = 86_400_000;
 
@@ -22,7 +24,35 @@ export class NotificationsService {
   constructor(
     private prisma: PrismaService,
     @Inject(EMAIL_SERVICE) private email: EmailService,
+    private config: AppConfig,
   ) {}
+
+  /** Best-effort 2-sentence encouraging blurb for the weekly digest. Returns '' on any failure or when unconfigured. */
+  private async generateDigestSummary(
+    firstName: string,
+    deadlines: { title: string; dueDate: Date }[],
+    applicationCount: number,
+  ): Promise<string> {
+    if (!this.config.groqApiKey) return '';
+    try {
+      const client = new OpenAI({ apiKey: this.config.groqApiKey, baseURL: 'https://api.groq.com/openai/v1' });
+      const response = await client.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 150,
+        messages: [{
+          role: 'user',
+          content: `Write a 2-sentence encouraging weekly update for an F-1 international student.
+Student first name: ${firstName}
+Upcoming deadlines (next 30 days): ${deadlines.map((d) => d.title).join(', ') || 'none'}
+Active job applications: ${applicationCount}
+Be warm, specific, and actionable. No legal advice. No em dashes, use commas or periods instead.`,
+        }],
+      });
+      return response.choices[0]?.message?.content?.trim() ?? '';
+    } catch {
+      return '';
+    }
+  }
 
   /** Runs every day at 08:00 server time. */
   @Cron(CronExpression.EVERY_DAY_AT_8AM)
@@ -61,9 +91,10 @@ export class NotificationsService {
         return acc;
       }, {});
       const actionNeeded = u.deadlines.some((d) => d.dueDate.getTime() - now.getTime() <= 7 * DAY);
+      const aiSummary = await this.generateDigestSummary(u.firstName, u.deadlines, u.applications.length);
 
       try {
-        await this.email.send(this.buildDigestEmail(u.email, u.firstName, u.deadlines, byStage, actionNeeded));
+        await this.email.send(this.buildDigestEmail(u.email, u.firstName, u.deadlines, byStage, actionNeeded, aiSummary));
         count++;
       } catch {
         this.log.warn(`Weekly digest failed for user ${u.id}`);
@@ -161,6 +192,7 @@ export class NotificationsService {
     deadlines: { title: string; dueDate: Date }[],
     byStage: Record<string, number>,
     actionNeeded: boolean,
+    aiSummary: string,
   ) {
     const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const subject = actionNeeded
@@ -188,6 +220,7 @@ export class NotificationsService {
       <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto">
         <p>Hi ${escapeHtml(firstName)},</p>
         <p style="font-size:16px">Here's your week at a glance.</p>
+        ${aiSummary ? `<p style="background:#f0fdf4;padding:12px;border-radius:8px;border-left:3px solid #16a34a;color:#166534">${escapeHtml(aiSummary)}</p>` : ''}
         ${statusBanner}
         <p style="margin-top:20px;font-weight:600">Deadlines in the next 30 days</p>
         <ul style="padding-left:18px;color:#334155">${deadlineRows}</ul>
@@ -202,6 +235,7 @@ export class NotificationsService {
     const text = [
       `Hi ${firstName},`,
       '',
+      ...(aiSummary ? [aiSummary, ''] : []),
       actionNeeded ? 'Action needed, a deadline is within 7 days.' : "You're on track, no urgent deadlines this week.",
       '',
       'Deadlines in the next 30 days:',

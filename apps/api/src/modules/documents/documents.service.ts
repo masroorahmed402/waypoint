@@ -55,7 +55,56 @@ export class DocumentsService {
     const bytes = await this.storage.read(doc.storageKey);
     const result = await this.extractor.extractI20(bytes);
     await this.persistExtractedExtras(userId, doc.id, result);
+    await this.detectAnomalies(userId, result);
     return result;
+  }
+
+  /** Flags implausible extracted dates/IDs as low-priority deadlines rather than silently trusting them. Best-effort, never throws. */
+  private async detectAnomalies(userId: string, extract: I20Extract): Promise<void> {
+    try {
+      const anomalies: string[] = [];
+
+      if (extract.programEndDate && extract.programStartDate) {
+        if (new Date(extract.programEndDate) <= new Date(extract.programStartDate)) {
+          anomalies.push('Program end date is before or same as program start date, please check your I-20.');
+        }
+      }
+
+      if (extract.sevisId && !/^N\d{9,11}$/.test(extract.sevisId)) {
+        anomalies.push(`SEVIS ID format looks unusual: ${extract.sevisId}. Expected format: N followed by 10 digits.`);
+      }
+
+      if (extract.programEndDate && new Date(extract.programEndDate) < new Date()) {
+        anomalies.push('Your I-20 program end date has passed. If you are still enrolled, contact your DSO for a program extension immediately.');
+      }
+
+      if (extract.programEndDate) {
+        const years = (new Date(extract.programEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 365);
+        if (years > 8) {
+          anomalies.push(`Program end date (${extract.programEndDate}) seems unusually far in the future. Please verify this is correct.`);
+        }
+      }
+
+      for (const anomaly of anomalies) {
+        const dedupeKey = `anomaly-${Buffer.from(anomaly).toString('base64').slice(0, 20)}`;
+        await this.prisma.deadline.upsert({
+          where: { userId_dedupeKey: { userId, dedupeKey } },
+          create: {
+            userId,
+            source: DeadlineSource.SYSTEM_GENERATED,
+            type: DeadlineType.CUSTOM,
+            title: 'Document issue detected',
+            dueDate: new Date(),
+            dedupeKey,
+            notes: anomaly,
+            ruleVersion: 'f1-2026.07',
+          },
+          update: {},
+        });
+      }
+    } catch {
+      // Anomaly detection is a bonus, not the primary extraction flow.
+    }
   }
 
   /** Stores CPT/OPT records, DSO contact, and encrypted SEVIS ID from an I-20 extraction. Best-effort — never throws. */
