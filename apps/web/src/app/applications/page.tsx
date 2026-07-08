@@ -13,7 +13,10 @@ interface App {
 }
 
 interface CompanyResult { id: string; name: string; domain: string | null; sponsorsH1b: boolean | null }
-interface H1bData { totalPetitions: number; sponsorsInternational: boolean | null; error?: string }
+interface H1bData {
+  totalPetitions: number; sponsorsInternational: boolean | null; error?: string;
+  avgSalary?: number; commonRoles?: { role: string; count: number }[]; dataYear?: number;
+}
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const fmtSalary = (min?: number, max?: number) => {
@@ -22,6 +25,8 @@ const fmtSalary = (min?: number, max?: number) => {
   if (min && max) return `$${f(min)}–${f(max)}`;
   return `$${f((min ?? max)!)}`;
 };
+const daysSince = (iso: string) => Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000));
+const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
 
 const STAGES = ['SAVED', 'APPLIED', 'OA', 'INTERVIEW', 'OFFER', 'REJECTED'] as const;
 const STAGE_LABEL: Record<string, string> = {
@@ -29,16 +34,44 @@ const STAGE_LABEL: Record<string, string> = {
 };
 
 const STAGE_COLOR: Record<string, { border: string; pill: string }> = {
-  SAVED: { border: 'border-l-slate-400', pill: 'bg-slate-100 text-slate-600' },
-  APPLIED: { border: 'border-l-blue-500', pill: 'bg-blue-100 text-blue-700' },
-  OA: { border: 'border-l-yellow-500', pill: 'bg-yellow-100 text-yellow-700' },
-  INTERVIEW: { border: 'border-l-purple-500', pill: 'bg-purple-100 text-purple-700' },
-  OFFER: { border: 'border-l-green-500', pill: 'bg-green-100 text-green-700' },
-  REJECTED: { border: 'border-l-red-500', pill: 'bg-red-100 text-red-700' },
+  SAVED: { border: 'border-t-slate-400', pill: 'bg-slate-100 text-slate-600' },
+  APPLIED: { border: 'border-t-blue-500', pill: 'bg-blue-100 text-blue-700' },
+  OA: { border: 'border-t-yellow-500', pill: 'bg-yellow-100 text-yellow-700' },
+  INTERVIEW: { border: 'border-t-purple-500', pill: 'bg-purple-100 text-purple-700' },
+  OFFER: { border: 'border-t-green-500', pill: 'bg-green-100 text-green-700' },
+  REJECTED: { border: 'border-t-red-500', pill: 'bg-red-100 text-red-700' },
 };
 
 export default function ApplicationsPage() {
   return <AppShell><Inner /></AppShell>;
+}
+
+function StatsBar({ apps }: { apps: App[] }) {
+  const total = apps.length;
+  const reachedInterview = apps.filter((a) => ['INTERVIEW', 'OFFER'].includes(a.stage)).length;
+  const offers = apps.filter((a) => a.stage === 'OFFER').length;
+  const sponsoring = new Set(
+    apps.filter((a) => a.company?.sponsorsH1b === true || a.sponsorshipConfirmed === 'YES').map((a) => a.companyName),
+  ).size;
+  const pct = (n: number) => (total > 0 ? Math.round((n / total) * 100) : 0);
+
+  const stats = [
+    { label: 'Total applications', value: total },
+    { label: 'Interview rate', value: `${pct(reachedInterview)}%` },
+    { label: 'Offer rate', value: `${pct(offers)}%` },
+    { label: 'Companies sponsoring H-1B', value: sponsoring },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {stats.map((s) => (
+        <Card key={s.label} className="text-center">
+          <div className="font-display text-2xl font-semibold text-ink">{s.value}</div>
+          <div className="mt-1 text-xs text-slate-500">{s.label}</div>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 function Inner() {
@@ -64,8 +97,10 @@ function Inner() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Applications</h1>
-        <Button variant="accent" onClick={() => setAdding(true)}>Add application</Button>
+        <Button variant="accent" className="px-6 py-3 text-base" onClick={() => setAdding(true)}>+ Add application</Button>
       </div>
+
+      {apps.length > 0 && <StatsBar apps={apps} />}
 
       {adding && <AddForm onClose={() => setAdding(false)} onSaved={() => { setAdding(false); qc.invalidateQueries({ queryKey: ['applications'] }); }} />}
 
@@ -102,7 +137,7 @@ function Inner() {
           {/* Desktop: horizontal-scroll kanban */}
           <div className="hidden gap-4 overflow-x-auto pb-2 md:flex">
             {STAGES.map((s) => (
-              <div key={s} className="w-[200px] shrink-0 rounded-xl bg-slate-50 p-3">
+              <div key={s} className={`w-[220px] shrink-0 rounded-xl border-t-4 bg-slate-50 p-3 ${STAGE_COLOR[s].border}`}>
                 <StageHeader stage={s} count={byStage(s).length} />
                 <StageColumn stage={s} items={byStage(s)} onMove={(id, stage) => move.mutate({ id, stage })} />
               </div>
@@ -117,7 +152,7 @@ function Inner() {
 function StageHeader({ stage, count }: { stage: string; count: number }) {
   const color = STAGE_COLOR[stage];
   return (
-    <div className={`mb-3 flex items-center justify-between border-l-4 px-2 py-1 ${color.border}`}>
+    <div className="mb-3 flex items-center justify-between px-1 py-1">
       <span className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${color.pill}`}>
         {STAGE_LABEL[stage]}
       </span>
@@ -127,10 +162,12 @@ function StageHeader({ stage, count }: { stage: string; count: number }) {
 }
 
 function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; onMove: (id: string, stage: string) => void }) {
+  const [menuFor, setMenuFor] = useState<string | null>(null);
+
   if (items.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-slate-300 py-8 text-center text-xs text-slate-400">
-        No applications
+        Drop here or click + to add
       </div>
     );
   }
@@ -140,9 +177,38 @@ function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; on
         const salary = fmtSalary(a.salaryMin, a.salaryMax);
         const h1b = a.company?.sponsorsH1b;
         return (
-          <div key={a.id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
-            <div className="text-base font-bold text-ink">{a.roleTitle}</div>
-            <div className="text-xs text-slate-500">{a.companyName}</div>
+          <div key={a.id} className="relative rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
+            <div className="flex items-start gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
+                {initials(a.companyName)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-base font-bold text-ink">{a.roleTitle}</div>
+                <div className="truncate text-xs text-slate-500">{a.companyName}</div>
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setMenuFor(menuFor === a.id ? null : a.id)}
+                  className="rounded px-1.5 py-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  aria-label="Move application"
+                >
+                  ⋮
+                </button>
+                {menuFor === a.id && (
+                  <div className="absolute right-0 z-10 mt-1 w-40 rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+                    {STAGES.filter((x) => x !== stage).map((target) => (
+                      <button
+                        key={target}
+                        onClick={() => { onMove(a.id, target); setMenuFor(null); }}
+                        className="block w-full px-3 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"
+                      >
+                        Move to {STAGE_LABEL[target]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
               {h1b === true ? (
                 <span className="inline-block rounded bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
@@ -165,23 +231,11 @@ function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; on
               <H1bBadge companyName={a.companyName} compact />
             </div>
             {a.appliedAt && (
-              <div className="mt-1.5 text-[11px] text-slate-400">Applied {fmtDate(a.appliedAt)}</div>
+              <div className="mt-1.5 text-[11px] text-slate-400">{daysSince(a.appliedAt)} days since applied</div>
             )}
             {a.notes && (
               <p className="mt-1.5 line-clamp-2 text-xs text-slate-500">{a.notes}</p>
             )}
-            <div className="mt-2.5">
-              <select
-                value=""
-                onChange={(e) => e.target.value && onMove(a.id, e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-ink/10"
-              >
-                <option value="">Move to…</option>
-                {STAGES.filter((x) => x !== stage).map((target) => (
-                  <option key={target} value={target}>{STAGE_LABEL[target]}</option>
-                ))}
-              </select>
-            </div>
           </div>
         );
       })}
@@ -198,7 +252,7 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
   const [newCompanySponsorsH1b, setNewCompanySponsorsH1b] = useState<string>('UNKNOWN');
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
-  const { data: h1bData } = useH1bData(f.companyName);
+  const { data: h1bData, isLoading: h1bLoading } = useH1bData(f.companyName);
   // Only ask the user to manually mark H-1B sponsorship when auto-detection
   // found nothing conclusive — a positive petition count speaks for itself.
   const showManualH1b = !h1bData || h1bData.totalPetitions === 0 || !!h1bData.error;
@@ -243,11 +297,27 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
   return (
     <Card>
       <div className="grid gap-3 md:grid-cols-2">
-        <div>
+        <div className="md:col-span-2">
           <Label>Company</Label>
           <CompanyTypeahead value={f.companyName} onChange={onCompanyNameChange} onSelect={onSelectCompany} />
           {f.companyName.trim() && (
-            <div className="mt-1.5"><H1bBadge companyName={f.companyName} /></div>
+            <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              {h1bLoading ? (
+                <p className="text-xs text-slate-500">Checking H-1B disclosure data…</p>
+              ) : !h1bData || h1bData.error || !h1bData.totalPetitions ? (
+                <p className="text-xs font-medium text-amber-700">⚠ No H-1B history found for {f.companyName}</p>
+              ) : (
+                <div className="text-xs text-slate-600">
+                  <p className="font-medium text-emerald-700">
+                    ✓ {h1bData.totalPetitions.toLocaleString()} H-1B petitions in {h1bData.dataYear}
+                  </p>
+                  {!!h1bData.avgSalary && <p className="mt-1">Average salary: ${h1bData.avgSalary.toLocaleString()}</p>}
+                  {!!h1bData.commonRoles?.length && (
+                    <p className="mt-1">Common roles: {h1bData.commonRoles.slice(0, 3).map((r) => r.role).join(', ')}</p>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
         <div><Label>Role</Label><Input value={f.roleTitle} onChange={set('roleTitle')} /></div>
@@ -357,7 +427,7 @@ function H1bBadge({ companyName, compact }: { companyName: string; compact?: boo
   }
   return (
     <span className={`inline-block rounded bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
-      ✓ {data.totalPetitions.toLocaleString()} H-1B petitions in {2024}
+      ✓ {data.totalPetitions.toLocaleString()} H-1B petitions in {data.dataYear ?? 2024}
     </span>
   );
 }
