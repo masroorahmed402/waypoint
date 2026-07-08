@@ -1,13 +1,15 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateMeDto, UpsertProfileDto } from './users.dto';
 import { ImmigrationService } from '../immigration/immigration.service';
+import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private immigration: ImmigrationService,
+    @Inject(STORAGE_SERVICE) private storage: StorageService,
   ) {}
 
   async me(userId: string) {
@@ -67,11 +69,28 @@ export class UsersService {
     return profile;
   }
 
-  async softDelete(userId: string) {
-    await this.prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } });
+  async hardDelete(userId: string) {
+    // First revoke all sessions
     await this.prisma.refreshToken.updateMany({
       where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+
+    // Delete all documents from storage first
+    const documents = await this.prisma.document.findMany({
+      where: { userId },
+      select: { storageKey: true },
+    });
+
+    for (const doc of documents) {
+      try {
+        await this.storage.delete(doc.storageKey);
+      } catch {
+        // Continue even if file deletion fails
+      }
+    }
+
+    // Hard delete the user — cascade deletes handle everything else
+    await this.prisma.user.delete({ where: { id: userId } });
   }
 }

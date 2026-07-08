@@ -85,7 +85,7 @@ export class AuthService {
       user?.passwordHash ??
       '$argon2id$v=19$m=65536,t=3,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
     const ok = await argon2.verify(hash, password).catch(() => false);
-    if (!ok || !user || user.deletedAt) {
+    if (!ok || !user) {
       throw new UnauthorizedException('Invalid email or password');
     }
     return this.issueSession(user, meta);

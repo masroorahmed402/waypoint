@@ -22,5 +22,5 @@ export class UsersController {
 
   @Delete('me')
   @HttpCode(204)
-  async remove(@CurrentUser() u: JwtUser) { await this.users.softDelete(u.sub); }
+  async remove(@CurrentUser() u: JwtUser) { await this.users.hardDelete(u.sub); }
 }
