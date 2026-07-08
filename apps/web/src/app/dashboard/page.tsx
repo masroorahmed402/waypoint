@@ -17,6 +17,7 @@ interface Deadline { id: string; title: string; dueDate: string; type: string; s
 interface CptOptRecord { type: string; startDate: string; endDate: string; employerName: string | null }
 interface CptSummary { records: CptOptRecord[]; fullTimeMonthsUsed: number }
 interface DsoContact { name: string; title: string | null; schoolName: string | null }
+interface OptUnemploymentSummary { daysUsed: number; daysRemaining: number; limit: number; warning: string | null }
 
 function daysUntil(iso: string) {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
@@ -128,6 +129,16 @@ function DashboardInner() {
     queryKey: ['dso-contact'],
     queryFn: () => api<DsoContact | null>('/immigration/dso-contact'),
     enabled: hasProfile,
+  });
+
+  const optUnemployment = useQuery({
+    queryKey: ['opt-unemployment-summary'],
+    queryFn: () => api<OptUnemploymentSummary>('/immigration/opt-unemployment/summary'),
+    enabled: hasProfile,
+  });
+  const logUnemployment = useMutation({
+    mutationFn: () => api('/immigration/opt-unemployment/start', { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['opt-unemployment-summary'] }),
   });
 
   const dismiss = useMutation({
@@ -263,6 +274,30 @@ function DashboardInner() {
           </div>
         </Card>
       </div>
+
+      {activeCpt?.type === 'OPT' && optUnemployment.data && (
+        <Card>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-ink">OPT job search: {optUnemployment.data.daysRemaining} days remaining</p>
+            <Link href="/applications" className="text-xs font-medium text-ink underline">View applications →</Link>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className={`h-full rounded-full ${optUnemployment.data.daysUsed >= optUnemployment.data.limit - 15 ? 'bg-red-500' : optUnemployment.data.daysUsed >= optUnemployment.data.limit - 30 ? 'bg-amber-500' : 'bg-beacon'}`}
+              style={{ width: `${Math.min(100, (optUnemployment.data.daysUsed / optUnemployment.data.limit) * 100)}%` }}
+            />
+          </div>
+          {optUnemployment.data.warning && (
+            <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 ring-1 ring-red-200">{optUnemployment.data.warning}</p>
+          )}
+          <button
+            onClick={() => logUnemployment.mutate()}
+            className="mt-2 text-xs font-medium text-slate-500 underline-offset-2 hover:underline"
+          >
+            Log an unemployment period
+          </button>
+        </Card>
+      )}
 
       {(docs.data?.length ?? 0) === 0 && (
         <Card className="flex flex-col items-center gap-2 border-dashed py-6 text-center">

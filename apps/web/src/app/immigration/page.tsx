@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, apiBlob } from '@/lib/api';
@@ -434,6 +435,9 @@ function Inner() {
                 {cpt.data.warning}
               </p>
             )}
+            <Link href="/resources/day1-cpt" className="inline-block text-xs font-medium text-ink underline">
+              Considering Day 1 CPT? See the reference list of schools &rarr;
+            </Link>
           </div>
         </Card>
       )}

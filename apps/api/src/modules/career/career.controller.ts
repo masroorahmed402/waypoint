@@ -5,11 +5,18 @@ import { H1bService } from './h1b.service';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { CreateApplicationDto, UpdateApplicationDto } from './dto/application.dto';
 import { UpsertCompanyDto } from './dto/company.dto';
+import { ParseJobUrlDto } from './dto/job-url.dto';
 import { ApplicationStage } from '@prisma/client';
 
 @Controller('career')
 export class CareerController {
   constructor(private svc: CareerService, private h1b: H1bService) {}
+
+  @Post('parse-job-url')
+  @Throttle({ default: { ttl: 60_000, limit: 15 } })
+  parseJobUrl(@Body() dto: ParseJobUrlDto) {
+    return this.svc.parseJobUrl(dto.url);
+  }
 
   @Get('applications')
   list(

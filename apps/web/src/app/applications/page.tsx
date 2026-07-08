@@ -253,8 +253,26 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [newCompanySponsorsH1b, setNewCompanySponsorsH1b] = useState<string>('UNKNOWN');
   const [busy, setBusy] = useState(false);
+  const [parsingUrl, setParsingUrl] = useState(false);
   const set = (k: string) => (e: any) => setF({ ...f, [k]: e.target.value });
   const { data: h1bData, isLoading: h1bLoading } = useH1bData(f.companyName);
+
+  async function parseUrl() {
+    if (!f.url.trim() || parsingUrl) return;
+    setParsingUrl(true);
+    try {
+      const parsed = await api<{ companyName?: string; roleTitle?: string; location?: string }>(
+        '/career/parse-job-url', { method: 'POST', body: JSON.stringify({ url: f.url.trim() }) },
+      );
+      setF((prev) => ({
+        ...prev,
+        companyName: prev.companyName || parsed.companyName || prev.companyName,
+        roleTitle: prev.roleTitle || parsed.roleTitle || prev.roleTitle,
+        location: prev.location || parsed.location || prev.location,
+      }));
+    } catch { /* best-effort, leave fields as-is */ }
+    finally { setParsingUrl(false); }
+  }
   // Only ask the user to manually mark H-1B sponsorship when auto-detection
   // found nothing conclusive — a positive petition count speaks for itself.
   const showManualH1b = !h1bData || h1bData.totalPetitions === 0 || !!h1bData.error;
@@ -323,7 +341,11 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
           )}
         </div>
         <div><Label>Role</Label><Input value={f.roleTitle} onChange={set('roleTitle')} /></div>
-        <div><Label>Job URL (optional)</Label><Input value={f.url} onChange={set('url')} /></div>
+        <div>
+          <Label>Job URL (optional)</Label>
+          <Input value={f.url} onChange={set('url')} onBlur={parseUrl} placeholder="Paste a job posting link to auto-fill" />
+          {parsingUrl && <p className="mt-1 text-xs text-slate-400">Reading job posting…</p>}
+        </div>
         <div><Label>Location (optional)</Label><Input value={f.location} onChange={set('location')} /></div>
         <div><Label>Salary min (optional)</Label><Input type="number" value={f.salaryMin} onChange={set('salaryMin')} /></div>
         <div><Label>Salary max (optional)</Label><Input type="number" value={f.salaryMax} onChange={set('salaryMax')} /></div>
