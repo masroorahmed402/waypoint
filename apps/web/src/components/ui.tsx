@@ -32,7 +32,11 @@ export function Label({ children }: { children: React.ReactNode }) {
 }
 
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={clsx('rounded-2xl border border-slate-200 bg-white p-5 shadow-sm', className)}>{children}</div>;
+  return <div className={clsx('rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md', className)}>{children}</div>;
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={clsx('animate-pulse rounded-lg bg-slate-200', className)} />;
 }
 
 export function Disclaimer() {
