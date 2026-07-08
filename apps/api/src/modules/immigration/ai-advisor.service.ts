@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import OpenAI from 'openai';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppConfig } from '../../config/app.config';
+import { decryptField } from '../../common/util/field-crypto';
 
 const MODEL = 'llama-3.3-70b-versatile';
 
@@ -117,6 +118,21 @@ Student profile:
       general_question: 'asking a general immigration question',
     };
 
+    let sevisId = '[Your SEVIS ID]';
+    try {
+      if (profile?.sevisIdEncrypted) {
+        sevisId = decryptField(profile.sevisIdEncrypted, this.config.fieldEncryptionKey);
+      }
+    } catch {
+      // Decryption failure shouldn't block drafting — fall back to a placeholder.
+    }
+
+    let dsoName = '[DSO Name]';
+    try {
+      const dso = await this.prisma.dsoContact.findUnique({ where: { userId } });
+      if (dso) dsoName = dso.name;
+    } catch {}
+
     const response = await this.client.chat.completions.create({
       model: MODEL,
       max_tokens: 500,
@@ -126,12 +142,14 @@ Student profile:
           content: `Write a professional email from an F-1 student to their DSO.
 Purpose: ${purposes[purpose] || purpose}
 Student: ${user?.firstName} ${user?.lastName}
-SEVIS ID: [student should fill in]
+Student SEVIS ID: ${sevisId}
+DSO name: ${dsoName}
 University: ${profile?.university?.name || profile?.universityName}
 Major: ${profile?.major}
-Program end: ${profile?.programEndDate?.toLocaleDateString()}
+Program end date: ${profile?.programEndDate?.toLocaleDateString()}
 Additional context: ${context || 'none'}
 
+Address the DSO by name and include the student's SEVIS ID in the email body.
 Write subject line and email body. Be professional and concise. Include placeholders for any info the student needs to fill in.`,
         },
       ],

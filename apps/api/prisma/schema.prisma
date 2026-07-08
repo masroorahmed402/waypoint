@@ -277,6 +277,7 @@ model DsoContact {
   name       String
   title      String?
   schoolName String?
+  email      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
