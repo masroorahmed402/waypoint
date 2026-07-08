@@ -13,16 +13,52 @@ interface Doc {
   sizeBytes: number; issueDate: string | null; expiryDate: string | null; createdAt: string;
 }
 
-const DOC_TYPES = [
-  'PASSPORT', 'VISA_STAMP', 'I20', 'I94', 'EAD', 'DRIVERS_LICENSE', 'STATE_ID',
-  'INSURANCE', 'LEASE', 'TAX', 'OFFER_LETTER', 'TRANSCRIPT', 'OTHER',
+const DOC_CATEGORIES = [
+  {
+    category: 'Immigration',
+    types: [
+      { value: 'I20', label: 'Form I-20', description: 'Certificate of Eligibility, your primary immigration document' },
+      { value: 'VISA_STAMP', label: 'Visa stamp', description: 'F-1 visa in your passport' },
+      { value: 'I94', label: 'Form I-94', description: 'Arrival/departure record from CBP' },
+      { value: 'EAD', label: 'EAD card', description: 'Employment Authorization Document for OPT/CPT' },
+      { value: 'PASSPORT', label: 'Passport', description: 'Must be valid 6 months beyond your stay' },
+    ],
+  },
+  {
+    category: 'Academic',
+    types: [
+      { value: 'TRANSCRIPT', label: 'Transcript', description: 'Official academic records' },
+      { value: 'OFFER_LETTER', label: 'Offer letter', description: 'Job or internship offer, we auto-add to your tracker' },
+    ],
+  },
+  {
+    category: 'Financial',
+    types: [
+      { value: 'TAX', label: 'Tax document (W-2/1099)', description: 'We detect FICA issues automatically' },
+    ],
+  },
+  {
+    category: 'Living',
+    types: [
+      { value: 'INSURANCE', label: 'Health insurance', description: 'Coverage card or policy document' },
+      { value: 'LEASE', label: 'Lease agreement', description: 'We remind you before it expires' },
+      { value: 'DRIVERS_LICENSE', label: "Driver's license / State ID", description: 'State-issued ID' },
+      { value: 'STATE_ID', label: 'State ID', description: 'Non-driver state identification' },
+    ],
+  },
+  {
+    category: 'Other',
+    types: [
+      { value: 'OTHER', label: 'Other document', description: 'Any other important document' },
+    ],
+  },
 ] as const;
 
-const TYPE_LABEL: Record<string, string> = {
-  PASSPORT: 'Passport', VISA_STAMP: 'Visa stamp', I20: 'I-20', I94: 'I-94', EAD: 'EAD',
-  DRIVERS_LICENSE: "Driver's license", STATE_ID: 'State ID', INSURANCE: 'Insurance',
-  LEASE: 'Lease', TAX: 'Tax', OFFER_LETTER: 'Offer letter', TRANSCRIPT: 'Transcript', OTHER: 'Other',
-};
+const DOC_TYPES = DOC_CATEGORIES.flatMap((c) => c.types.map((t) => t.value));
+
+const TYPE_LABEL: Record<string, string> = Object.fromEntries(
+  DOC_CATEGORIES.flatMap((c) => c.types.map((t) => [t.value, t.label])),
+);
 
 const TYPE_BADGE: Record<string, string> = {
   PASSPORT: 'bg-blue-50 text-blue-700 ring-1 ring-blue-200',
@@ -212,7 +248,11 @@ function Inner() {
                 value={uploadType}
                 onChange={(e) => setUploadType(e.target.value)}
               >
-                {DOC_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                {DOC_CATEGORIES.map((c) => (
+                  <optgroup key={c.category} label={c.category}>
+                    {c.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </optgroup>
+                ))}
               </select>
               <Button onClick={() => fileRef.current?.click()}>Choose file</Button>
               <input ref={fileRef} type="file" accept={ALLOWED_EXT_ACCEPT} hidden onChange={onFile} />
@@ -222,6 +262,17 @@ function Inner() {
       </div>
 
       <SecurityBadge variant="banner" />
+
+      <Card>
+        <p className="text-sm font-medium text-ink">What happens when you upload</p>
+        <ul className="mt-2 space-y-1.5 text-sm text-slate-600">
+          <li>✓ Extracts expiry dates and creates automatic reminders</li>
+          <li>✓ Stores all files encrypted with AES-256</li>
+          <li>✓ Uses the information only to personalize your timeline and alerts</li>
+          <li>✓ Never shares your documents with anyone</li>
+          <li>✓ Lets you delete any file instantly</li>
+        </ul>
+      </Card>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
