@@ -10,6 +10,7 @@ import NotificationBell from './notification-bell';
 const NAV = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/immigration', label: 'Immigration' },
+  { href: '/advisor', label: 'Advisor' },
   { href: '/documents', label: 'Documents' },
   { href: '/applications', label: 'Applications' },
   { href: '/settings', label: 'Settings' },

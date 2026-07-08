@@ -26,6 +26,13 @@ interface CptSummary {
 }
 interface DsoContact { name: string; title: string | null; schoolName: string | null }
 
+const EMAIL_PURPOSES = [
+  { value: 'opt_request', label: 'Requesting OPT authorization' },
+  { value: 'cpt_request', label: 'Requesting CPT authorization' },
+  { value: 'extension_request', label: 'Requesting a program extension' },
+  { value: 'general_question', label: 'General immigration question' },
+];
+
 const fmt = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 const daysUntil = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 
@@ -36,6 +43,13 @@ export default function ImmigrationPage() {
 function Inner() {
   const qc = useQueryClient();
   const [exporting, setExporting] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const [draftPurpose, setDraftPurpose] = useState(EMAIL_PURPOSES[0].value);
+  const [draftContext, setDraftContext] = useState('');
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [draftResult, setDraftResult] = useState<{ subject: string; body: string } | null>(null);
+  const [copied, setCopied] = useState(false);
   const tl = useQuery({ queryKey: ['timeline'], queryFn: () => api<Timeline>('/immigration/timeline') });
   const dl = useQuery({ queryKey: ['deadlines', 'all'], queryFn: () => api<Deadline[]>('/immigration/deadlines') });
   const cpt = useQuery({ queryKey: ['cpt-summary'], queryFn: () => api<CptSummary>('/immigration/cpt-summary') });
@@ -54,6 +68,36 @@ function Inner() {
     } finally {
       setExporting(false);
     }
+  }
+
+  async function generateDraft() {
+    setDraftBusy(true); setDraftError(''); setCopied(false);
+    try {
+      const res = await api<{ subject: string; body: string } | null>('/immigration/draft-email', {
+        method: 'POST',
+        body: JSON.stringify({ purpose: draftPurpose, context: draftContext || undefined }),
+      });
+      if (!res) { setDraftError('AI advisor is not configured yet.'); return; }
+      setDraftResult(res);
+    } catch (e: any) {
+      setDraftError(e.message ?? 'Could not generate a draft.');
+    } finally {
+      setDraftBusy(false);
+    }
+  }
+
+  function copyDraft() {
+    if (!draftResult) return;
+    navigator.clipboard.writeText(`Subject: ${draftResult.subject}\n\n${draftResult.body}`);
+    setCopied(true);
+  }
+
+  function closeDraftModal() {
+    setDraftOpen(false);
+    setDraftResult(null);
+    setDraftError('');
+    setDraftContext('');
+    setCopied(false);
   }
 
   const dismiss = useMutation({
@@ -87,6 +131,7 @@ function Inner() {
           <Button variant="ghost" onClick={exportCalendar} disabled={exporting}>
             {exporting ? 'Exporting…' : 'Export to calendar'}
           </Button>
+          <Button variant="ghost" onClick={() => setDraftOpen(true)}>Draft DSO Email</Button>
         </div>
       </div>
       <Disclaimer />
@@ -212,6 +257,60 @@ function Inner() {
           </Card>
         )}
       </div>
+
+      {draftOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <Card className="w-full max-w-lg">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display font-semibold text-ink">Draft DSO email</h2>
+              <button onClick={closeDraftModal} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            {!draftResult ? (
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Purpose</label>
+                  <select
+                    value={draftPurpose}
+                    onChange={(e) => setDraftPurpose(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  >
+                    {EMAIL_PURPOSES.map((p) => (
+                      <option key={p.value} value={p.value}>{p.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">Additional context (optional)</label>
+                  <textarea
+                    value={draftContext}
+                    onChange={(e) => setDraftContext(e.target.value)}
+                    rows={3}
+                    placeholder="Anything specific your DSO should know…"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10"
+                  />
+                </div>
+                {draftError && <p className="text-sm text-red-600">{draftError}</p>}
+                <Button onClick={generateDraft} disabled={draftBusy} className="w-full">
+                  {draftBusy ? 'Generating…' : 'Generate'}
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-4 space-y-3">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Subject</p>
+                  <p className="mt-0.5 text-sm font-medium text-ink">{draftResult.subject}</p>
+                  <p className="mt-3 whitespace-pre-wrap text-sm text-slate-700">{draftResult.body}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" onClick={copyDraft}>{copied ? 'Copied!' : 'Copy to clipboard'}</Button>
+                  <Button variant="ghost" onClick={() => setDraftResult(null)}>Start over</Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
