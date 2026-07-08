@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
 import Onboarding from '@/components/onboarding';
+import ArrivalChecklist from '@/components/arrival-checklist';
 import { Card } from '@/components/ui';
 
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string }
@@ -111,6 +112,8 @@ function DashboardInner() {
           Active CPT{activeCpt.employerName ? ` at ${activeCpt.employerName}` : ''} — expires in {daysUntil(activeCpt.endDate)} days.
         </div>
       )}
+
+      <ArrivalChecklist programStartDate={me!.profile!.programStartDate} />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="overflow-hidden">

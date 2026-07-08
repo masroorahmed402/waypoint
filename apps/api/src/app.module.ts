@@ -14,6 +14,7 @@ import { StorageModule } from './modules/storage/storage.module';
 import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
+import { ChecklistModule } from './modules/checklist/checklist.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 
@@ -32,6 +33,7 @@ import { RolesGuard } from './common/guards/roles.guard';
     HealthModule,
     NotificationsModule,
     MarketingModule,
+    ChecklistModule,
   ],
   providers: [
     AppConfig,
