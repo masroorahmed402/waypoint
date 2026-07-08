@@ -25,6 +25,19 @@ const NAV = [
   { href: '/settings', label: 'Settings' },
 ];
 
+const MOBILE_TABS = [
+  { href: '/dashboard', label: 'Dashboard', icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5" /><rect x="13" y="3" width="8" height="5" rx="1.5" /><rect x="13" y="12" width="8" height="9" rx="1.5" /><rect x="3" y="15" width="8" height="6" rx="1.5" /></svg>
+  ) },
+  { href: '/immigration', label: 'Immigration', icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="5" cy="6" r="1.8" /><circle cx="12" cy="18" r="1.8" /><circle cx="19" cy="10" r="1.8" /><path d="M5 8v4a2 2 0 0 0 2 2h3M14 18h3a2 2 0 0 0 2-2v-2" strokeLinecap="round" /></svg>
+  ) },
+  { href: '/advisor', label: 'Advisor', icon: <SparkleIcon /> },
+  { href: '/applications', label: 'Applications', icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 7a2 2 0 0 1 2-2h3l1-2h6l1 2h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" /><path d="M3 11h18" /></svg>
+  ) },
+];
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { me, loading, logout } = useAuth();
   const pathname = usePathname();
@@ -110,7 +123,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-6 pb-20 sm:px-6 sm:py-8 md:pb-8">{children}</main>
+      <nav className="fixed bottom-0 left-0 right-0 z-30 flex border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
+        {MOBILE_TABS.map((t) => {
+          const active = pathname === t.href;
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              className={clsx(
+                'flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium',
+                active ? 'text-ink' : 'text-slate-400',
+              )}
+            >
+              <span className={active ? 'text-beacon-600' : ''}>{t.icon}</span>
+              {t.label}
+            </Link>
+          );
+        })}
+      </nav>
       <ToastHost />
     </div>
   );

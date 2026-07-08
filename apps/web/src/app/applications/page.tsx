@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import AppShell from '@/components/app-shell';
-import { Button, Input, Label, Card } from '@/components/ui';
+import { Button, Input, Label, Card, Skeleton } from '@/components/ui';
 
 interface App {
   id: string; companyName: string; roleTitle: string; stage: string;
@@ -105,7 +105,9 @@ function Inner() {
       {adding && <AddForm onClose={() => setAdding(false)} onSaved={() => { setAdding(false); qc.invalidateQueries({ queryKey: ['applications'] }); }} />}
 
       {isLoading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32" />)}
+        </div>
       ) : apps.length === 0 ? (
         <Card className="flex flex-col items-center py-12 text-center">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-300">

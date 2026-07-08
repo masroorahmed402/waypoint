@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import AppShell from '@/components/app-shell';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, Skeleton } from '@/components/ui';
 import { formatDeadline, formatDate } from '@/lib/format-date';
 import { showToast } from '@/lib/toast';
 
@@ -229,7 +229,9 @@ function Inner() {
       )}
 
       {isLoading ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36" />)}
+        </div>
       ) : activeDocs.length === 0 ? (
         <Card className="flex flex-col items-center py-12 text-center">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" className="text-slate-300">
