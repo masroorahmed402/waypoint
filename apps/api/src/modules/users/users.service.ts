@@ -21,7 +21,7 @@ export class UsersService {
       where: { id: userId, deletedAt: null },
       select: {
         id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true,
-        profile: { include: { university: { select: { id: true, name: true, slug: true } } } },
+        profile: { include: { university: { select: { id: true, name: true, slug: true, issOfficeUrl: true, issEmail: true, issPhone: true } } } },
       },
     });
     if (!user) throw new NotFoundException();

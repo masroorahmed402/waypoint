@@ -1,10 +1,14 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, apiBlob } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
 import { Button, Card, Disclaimer } from '@/components/ui';
 import { markDsoEmailDrafted } from '@/lib/engagement';
+import { formatDeadline, formatDate } from '@/lib/format-date';
+import { showToast } from '@/lib/toast';
 
 interface Milestone {
   key: string; label: string; date?: string;
@@ -48,15 +52,54 @@ const EMAIL_PURPOSES = [
   { value: 'general_question', label: 'General immigration question' },
 ];
 
-const fmt = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+const URGENCY_GROUPS = [
+  { key: 'urgent', label: '🔴 Urgent', test: (n: number) => n >= 0 && n <= 7 },
+  { key: 'upcoming', label: '🟡 Upcoming', test: (n: number) => n > 7 && n <= 30 },
+  { key: 'ontrack', label: '🟢 On track', test: (n: number) => n > 30 && n <= 90 },
+  { key: 'future', label: '⚪ Future', test: (n: number) => n > 90 },
+];
+
 const daysUntil = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 
 export default function ImmigrationPage() {
   return <AppShell><Inner /></AppShell>;
 }
 
+function DeadlineGroup({ label, deadlines, dismiss }: { label: string; deadlines: Deadline[]; dismiss: (id: string) => void }) {
+  const [open, setOpen] = useState(true);
+  if (deadlines.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-slate-200">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-ink"
+      >
+        <span>{label} ({deadlines.length})</span>
+        <span className="text-slate-400">{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="space-y-2 border-t border-slate-100 p-3">
+          {deadlines.map((d) => (
+            <div key={d.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2.5">
+              <div>
+                <p className="text-sm font-medium text-ink">{d.title}</p>
+                <p className="text-xs text-slate-500">{formatDeadline(d.dueDate)} · {formatDate(d.dueDate)}</p>
+              </div>
+              {!d.dismissedAt && (
+                <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => dismiss(d.id)}>Dismiss</Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Inner() {
   const qc = useQueryClient();
+  const router = useRouter();
+  const { me } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
   const [draftPurpose, setDraftPurpose] = useState(EMAIL_PURPOSES[0].value);
@@ -151,22 +194,42 @@ function Inner() {
       api(`/immigration/deadlines/${id}`, { method: 'PATCH', body: JSON.stringify({ dismissedAt: new Date().toISOString() }) }),
     onSuccess: (_data, id) => {
       qc.setQueryData<Deadline[]>(['deadlines', 'all'], (old) => old?.filter((d) => d.id !== id));
+      showToast('Got it — we won’t remind you about this one');
     },
   });
+
+  function askAboutMilestone(label: string) {
+    router.push(`/advisor?q=${encodeURIComponent(`Tell me more about ${label} and what I need to do`)}`);
+  }
 
   if (tl.isError) {
     return <p className="text-sm text-slate-500">Complete onboarding on the dashboard first.</p>;
   }
 
+  const now = new Date();
+  const activeCptOpt = cpt.data?.records.find(
+    (r) => new Date(r.startDate) <= now && new Date(r.endDate) >= now,
+  );
+  const showTrackingBanner = !!activeCptOpt && (cases.data ?? []).length === 0;
+
+  const university = me?.profile?.university as any;
+  const issUrl: string | undefined = university?.issOfficeUrl;
+  const issEmail: string | undefined = university?.issEmail;
+
   const dotStyle = (s: Milestone['status']) =>
     s === 'PAST'
       ? 'bg-slate-300 border-slate-300'
       : s === 'CURRENT'
-      ? 'bg-ink border-ink ring-[6px] ring-ink/10'
+      ? 'bg-beacon border-beacon animate-pulse-beacon ring-4 ring-beacon/20'
       : 'bg-white border-slate-300';
 
   const labelStyle = (s: Milestone['status']) =>
     s === 'PAST' ? 'text-slate-400' : s === 'CURRENT' ? 'text-ink' : 'text-slate-700';
+
+  const grouped = URGENCY_GROUPS.map((g) => ({
+    ...g,
+    items: (dl.data ?? []).filter((d) => g.test(daysUntil(d.dueDate))),
+  }));
 
   return (
     <div className="space-y-6">
@@ -177,131 +240,50 @@ function Inner() {
           <Button variant="ghost" onClick={exportCalendar} disabled={exporting}>
             {exporting ? 'Exporting…' : 'Export to calendar'}
           </Button>
-          <Button variant="ghost" onClick={() => setDraftOpen(true)}>Draft DSO Email</Button>
         </div>
       </div>
       <Disclaimer />
 
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+      {showTrackingBanner && (
+        <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-200">
+          You appear to be on active {activeCptOpt!.type}. Track your USCIS case status here to get notified of any changes.
+        </div>
+      )}
+
+      {/* AI + DSO / USCIS top row */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <h2 className="font-display font-semibold text-ink">Your F-1 journey</h2>
-          <ol className="mt-6 space-y-0">
-            {tl.data?.milestones.map((m, i) => (
-              <li key={m.key} className="relative flex gap-5 pb-8 last:pb-0">
-                {i < (tl.data?.milestones.length ?? 0) - 1 && (
-                  <span className="absolute left-[9px] top-5 h-full w-px bg-slate-200" />
+          <h2 className="font-display font-semibold text-ink">Your DSO</h2>
+          {dso.data ? (
+            <>
+              <p className="mt-2 text-sm text-slate-600">
+                <span className="font-semibold text-ink">{dso.data.name}</span>
+                {dso.data.title ? `, ${dso.data.title}` : ''}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {issUrl && (
+                  <a href={issUrl} target="_blank" rel="noopener noreferrer">
+                    <Button variant="ghost" className="text-xs">Visit ISS Office ↗</Button>
+                  </a>
                 )}
-                <span className={`relative mt-1 h-5 w-5 shrink-0 rounded-full border-2 ${dotStyle(m.status)}`} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className={`font-semibold ${labelStyle(m.status)}`}>{m.label}</span>
-                    {m.status === 'CURRENT' && (
-                      <span className="rounded-full bg-ink/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink">now</span>
-                    )}
-                    <span className="text-sm text-slate-500">
-                      {m.date ? fmt(m.date) : m.dateRange ? `${fmt(m.dateRange.start)} – ${fmt(m.dateRange.end)}` : ''}
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{m.explanation}</p>
-                  {m.sourceUrl && (
-                    <a href={m.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-xs font-medium text-ink hover:underline">
-                      Official source ↗
-                    </a>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </Card>
-
-        <Card>
-          <h2 className="font-display font-semibold text-ink">Deadlines</h2>
-          <div className="mt-4 space-y-3">
-            {dl.data?.length === 0 && <p className="text-sm text-slate-400">No deadlines yet.</p>}
-            {dl.data?.map((d) => {
-              const n = daysUntil(d.dueDate);
-              const urgent = n >= 0 && n <= 7;
-              const soon = n > 7 && n <= 30;
-              return (
-                <div
-                  key={d.id}
-                  className={`rounded-xl border p-3.5 shadow-sm transition ${
-                    urgent ? 'border-red-200 bg-red-50/50' : soon ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-ink">{d.title}</span>
-                    <span className={`shrink-0 text-xs font-semibold ${n < 0 ? 'text-slate-400' : urgent ? 'text-red-600' : soon ? 'text-amber-600' : 'text-slate-500'}`}>
-                      {n < 0 ? 'passed' : n === 0 ? 'today' : `in ${n}d`}
-                    </span>
-                  </div>
-                  <div className="mt-0.5 text-xs text-slate-500">{fmt(d.dueDate)}</div>
-                  {d.notes && <p className="mt-1.5 text-xs leading-relaxed text-slate-600">{d.notes}</p>}
-                  {!d.dismissedAt && (
-                    <div className="mt-2.5">
-                      <Button
-                        variant="ghost"
-                        className="px-2 py-1 text-xs"
-                        onClick={() => dismiss.mutate(d.id)}
-                        disabled={dismiss.isPending}
-                      >
-                        Dismiss
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        {cpt.data && cpt.data.records.length > 0 && (
-          <Card>
-            <h2 className="font-display font-semibold text-ink">CPT/OPT summary</h2>
-            <div className="mt-4 space-y-3">
-              {cpt.data.records
-                .filter((r) => new Date(r.startDate) <= new Date() && new Date(r.endDate) >= new Date())
-                .map((r) => {
-                  const n = daysUntil(r.endDate);
-                  return (
-                    <div key={r.id} className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
-                      <div className="text-sm font-semibold text-ink">
-                        Active {r.type}{r.employerName ? ` at ${r.employerName}` : ''}
-                      </div>
-                      <div className="mt-0.5 text-xs text-emerald-800">
-                        Expires {fmt(r.endDate)} ({n < 0 ? 'passed' : `in ${n}d`})
-                      </div>
-                    </div>
-                  );
-                })}
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-600">Full-time CPT used</span>
-                <span className="font-semibold text-ink">{cpt.data.fullTimeMonthsUsed} / 12 months</span>
+                {issEmail && (
+                  <a href={`mailto:${issEmail}`}>
+                    <Button variant="ghost" className="text-xs">Contact your DSO</Button>
+                  </a>
+                )}
               </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                <div
-                  className={`h-full rounded-full ${cpt.data.fullTimeMonthsUsed >= 9 ? 'bg-red-500' : 'bg-beacon'}`}
-                  style={{ width: `${Math.min(100, (cpt.data.fullTimeMonthsUsed / 12) * 100)}%` }}
-                />
-              </div>
-              {cpt.data.warning && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 ring-1 ring-red-200">
-                  {cpt.data.warning}
-                </p>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {dso.data && (
-          <Card>
-            <h2 className="font-display font-semibold text-ink">Your DSO</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              <span className="font-semibold text-ink">{dso.data.name}</span>
-              {dso.data.title ? `, ${dso.data.title}` : ''} — contact them for immigration questions.
-            </p>
-          </Card>
-        )}
+            </>
+          ) : (
+            <p className="mt-2 text-sm text-slate-500">Upload your I-20 to auto-fill your DSO contact.</p>
+          )}
+          <Button
+            variant="ghost"
+            className="mt-4 text-xs"
+            onClick={() => router.push('/advisor?q=' + encodeURIComponent('What should I ask my DSO about my current timeline?'))}
+          >
+            Ask AI about my timeline
+          </Button>
+        </Card>
 
         <Card>
           <h2 className="font-display font-semibold text-ink">Track your USCIS case</h2>
@@ -342,7 +324,7 @@ function Inner() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-xs text-slate-400">
-                      {c.lastCheckedAt ? `Last checked ${fmt(c.lastCheckedAt)}` : 'Never checked'}
+                      {c.lastCheckedAt ? `Last checked ${formatDate(c.lastCheckedAt)}` : 'Never checked'}
                     </span>
                     <div className="flex gap-2">
                       <Button
@@ -368,6 +350,86 @@ function Inner() {
           </div>
           <p className="mt-3 text-xs text-slate-400">We check automatically every 6 hours and email you when status changes.</p>
         </Card>
+      </div>
+
+      {/* visual timeline */}
+      <Card>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display font-semibold text-ink">Your F-1 journey</h2>
+          <Button variant="ghost" className="text-xs" onClick={() => setDraftOpen(true)}>Draft DSO Email</Button>
+        </div>
+        <div className="mt-6 overflow-x-auto pb-2">
+          <div className="flex min-w-max items-start gap-0 sm:min-w-0">
+            {tl.data?.milestones.map((m, i) => (
+              <div key={m.key} className="group relative flex w-48 shrink-0 flex-col items-center px-2 text-center sm:w-auto sm:flex-1">
+                {i > 0 && (
+                  <span
+                    className="absolute right-1/2 top-3 hidden h-px w-full sm:block"
+                    style={{ background: m.status === 'UPCOMING' ? '#e2e8f0' : 'linear-gradient(90deg,#e6a53a,#cbd5e1)' }}
+                  />
+                )}
+                <span className={`relative z-10 h-6 w-6 shrink-0 rounded-full border-2 ${dotStyle(m.status)}`} />
+                <span className={`mt-3 text-sm font-semibold ${labelStyle(m.status)}`}>{m.label}</span>
+                <span className="mt-1 text-xs text-slate-400">
+                  {m.date ? formatDeadline(m.date) : m.dateRange ? `${formatDate(m.dateRange.start)} – ${formatDate(m.dateRange.end)}` : ''}
+                </span>
+                <p className="mt-2 hidden text-xs leading-relaxed text-slate-600 group-hover:block sm:block">{m.explanation}</p>
+                <button
+                  onClick={() => askAboutMilestone(m.label)}
+                  className="mt-2 rounded-full border border-slate-300 px-2.5 py-1 text-[11px] font-medium text-ink transition hover:bg-slate-100"
+                >
+                  Ask AI about this
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      {cpt.data && cpt.data.records.length > 0 && (
+        <Card>
+          <h2 className="font-display font-semibold text-ink">CPT/OPT summary</h2>
+          <div className="mt-4 space-y-3">
+            {cpt.data.records
+              .filter((r) => new Date(r.startDate) <= new Date() && new Date(r.endDate) >= new Date())
+              .map((r) => (
+                <div key={r.id} className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+                  <div className="text-sm font-semibold text-ink">
+                    Active {r.type}{r.employerName ? ` at ${r.employerName}` : ''}
+                  </div>
+                  <div className="mt-0.5 text-xs text-emerald-800">
+                    Expires {formatDate(r.endDate)} ({formatDeadline(r.endDate)})
+                  </div>
+                </div>
+              ))}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-600">Full-time CPT used</span>
+              <span className="font-semibold text-ink">{cpt.data.fullTimeMonthsUsed} / 12 months</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+              <div
+                className={`h-full rounded-full ${cpt.data.fullTimeMonthsUsed >= 9 ? 'bg-red-500' : 'bg-beacon'}`}
+                style={{ width: `${Math.min(100, (cpt.data.fullTimeMonthsUsed / 12) * 100)}%` }}
+              />
+            </div>
+            {cpt.data.warning && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700 ring-1 ring-red-200">
+                {cpt.data.warning}
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* deadlines grouped by urgency */}
+      <div>
+        <h2 className="font-display font-semibold text-ink">Deadlines</h2>
+        <div className="mt-3 space-y-3">
+          {(dl.data ?? []).length === 0 && <p className="text-sm text-slate-400">No deadlines yet.</p>}
+          {grouped.map((g) => (
+            <DeadlineGroup key={g.key} label={g.label} deadlines={g.items} dismiss={(id) => dismiss.mutate(id)} />
+          ))}
+        </div>
       </div>
 
       {draftOpen && (
