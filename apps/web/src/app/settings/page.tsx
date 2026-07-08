@@ -183,7 +183,13 @@ function Inner() {
             <div><Label>Program start</Label><Input type="date" value={pf.programStartDate} onChange={setP('programStartDate')} /></div>
             <div><Label>Program end</Label><Input type="date" value={pf.programEndDate} onChange={setP('programEndDate')} /></div>
           </div>
-          <div><Label>U.S. entry date (optional)</Label><Input type="date" value={pf.usEntryDate} onChange={setP('usEntryDate')} /></div>
+          <div>
+            <Label>Latest U.S. arrival date (optional)</Label>
+            <Input type="date" value={pf.usEntryDate} onChange={setP('usEntryDate')} />
+            <p className="mt-1 text-xs text-slate-500">
+              The most recent date you entered the U.S. — important if you&apos;ve traveled internationally.
+            </p>
+          </div>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
               type="checkbox"

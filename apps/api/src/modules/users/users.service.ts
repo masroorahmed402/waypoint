@@ -5,7 +5,7 @@ import { UpdateMeDto, UpsertProfileDto } from './users.dto';
 import { ImmigrationService } from '../immigration/immigration.service';
 import { STORAGE_SERVICE, StorageService } from '../storage/storage.interface';
 import { AppConfig } from '../../config/app.config';
-import { decryptField } from '../../common/util/field-crypto';
+import { decryptField, encryptField } from '../../common/util/field-crypto';
 
 @Injectable()
 export class UsersService {
@@ -41,6 +41,13 @@ export class UsersService {
     const end = new Date(dto.programEndDate);
     if (end <= start) throw new BadRequestException('programEndDate must be after programStartDate');
 
+    // Onboarding extracts the SEVIS ID from the I-20 before this profile row
+    // exists, so it can't be persisted at extraction time — carry it through
+    // here instead so the first-time upload path doesn't silently drop it.
+    const sevisIdEncrypted = dto.sevisId
+      ? encryptField(dto.sevisId, this.config.fieldEncryptionKey)
+      : undefined;
+
     const profile = await this.prisma.studentProfile.upsert({
       where: { userId },
       create: {
@@ -54,6 +61,7 @@ export class UsersService {
         programEndDate: end,
         usEntryDate: dto.usEntryDate ? new Date(dto.usEntryDate) : null,
         stemEligible: dto.stemEligible ?? false,
+        sevisIdEncrypted,
       },
       update: {
         universityId: dto.universityId ?? null,
@@ -65,6 +73,7 @@ export class UsersService {
         programEndDate: end,
         usEntryDate: dto.usEntryDate ? new Date(dto.usEntryDate) : null,
         stemEligible: dto.stemEligible ?? false,
+        ...(sevisIdEncrypted ? { sevisIdEncrypted } : {}),
       },
     });
 

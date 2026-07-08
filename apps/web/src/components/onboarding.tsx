@@ -57,6 +57,7 @@ export default function Onboarding() {
   const [stemEligible, setStemEligible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [skippedUpload, setSkippedUpload] = useState(false);
+  const [sevisId, setSevisId] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -75,6 +76,7 @@ export default function Onboarding() {
     if (x.programEndDate) { next.programEndDate = x.programEndDate; filled.add('programEndDate'); }
     setF(next);
     setPrefilled(filled);
+    if (x.sevisId) setSevisId(x.sevisId);
 
     // The backend appends a "⚠️ ..." stale-I20 nudge onto the end of notice —
     // split it out so it can be shown prominently instead of blended in.
@@ -146,6 +148,7 @@ export default function Onboarding() {
           programEndDate: new Date(f.programEndDate).toISOString(),
           usEntryDate: f.usEntryDate ? new Date(f.usEntryDate).toISOString() : undefined,
           stemEligible,
+          sevisId: sevisId || undefined,
         }),
       });
       track('onboarding_complete');
@@ -283,8 +286,11 @@ export default function Onboarding() {
               <Input value={personal.lastName} onChange={(e: any) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="e.g. Sharma" />
             </div>
             <div>
-              <Label>U.S. entry date (optional)</Label>
+              <Label>Latest U.S. arrival date (optional)</Label>
               <Input type="date" value={f.usEntryDate} onChange={set('usEntryDate')} />
+              <p className="mt-1 text-xs text-slate-500">
+                The most recent date you entered the U.S. — important if you&apos;ve traveled internationally.
+              </p>
             </div>
           </div>
 

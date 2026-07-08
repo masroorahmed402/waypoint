@@ -20,4 +20,5 @@ export class UpsertProfileDto {
   @IsISO8601() programEndDate: string;
   @IsOptional() @IsISO8601() usEntryDate?: string;
   @IsOptional() @IsBoolean() stemEligible?: boolean;
+  @IsOptional() @IsString() @MaxLength(30) sevisId?: string;
 }
