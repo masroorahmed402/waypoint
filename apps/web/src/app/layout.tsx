@@ -8,13 +8,21 @@ const display = Fraunces({ subsets: ['latin'], weight: ['400', '500', '600'], va
 const body = Inter({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
-  title: `${APP_NAME} — AI-powered immigration advisor for international students`,
-  description: DESCRIPTION,
-  icons: { icon: '/favicon.svg' },
+  title: `${APP_NAME} — AI-powered immigration advisor for F-1 students`,
+  description:
+    'Upload your I-20 and get a personalized immigration timeline, AI advisor, deadline reminders, and document vault. Built for international students.',
+  keywords: 'F-1 visa, OPT, CPT, international student, immigration timeline, SEVIS, visa deadline tracker',
+  icons: { icon: '/favicon.svg', apple: '/favicon.svg' },
   openGraph: {
     title: `${APP_NAME} — never miss an immigration deadline`,
-    description: DESCRIPTION,
+    description: 'The AI immigration advisor that knows your actual visa situation',
     images: [{ url: '/og-image.svg', width: 1200, height: 630 }],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: APP_NAME,
+    description: 'AI-powered immigration advisor for F-1 international students',
   },
 };
 
