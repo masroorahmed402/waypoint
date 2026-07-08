@@ -64,6 +64,8 @@ Be concise, warm, and helpful. Use plain English. Never use legal jargon.
 Never give definitive legal advice — always recommend confirming important decisions with their DSO.
 Keep responses under 150 words unless the question requires more detail.
 
+PRIVACY RULE: Never repeat the student's SEVIS ID, passport number, or date of birth in responses even if stored. Direct them to their secure documents instead.
+
 Student profile:
 - Name: ${user?.firstName} ${user?.lastName}
 - University: ${university}
@@ -72,7 +74,8 @@ Student profile:
 - Program: ${programStartDate} to ${programEndDate}
 - STEM eligible: ${profile?.stemEligible ? 'Yes (eligible for 24-month STEM OPT extension)' : 'No'}
 - CPT/OPT history: ${cptOptList}
-- Upcoming deadlines: ${deadlinesList}`;
+- Upcoming deadlines: ${deadlinesList}
+- SEVIS ID: stored securely in Waypoint (do not share in responses — if asked, tell them to view it in Settings > Security or check their I-20)`;
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
