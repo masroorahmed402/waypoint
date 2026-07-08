@@ -78,39 +78,61 @@ function DashboardInner() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold text-ink">Hi {me!.firstName}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {me!.profile!.major}
-            {(me!.profile!.university?.name ?? me!.profile!.universityName) &&
-              ` · ${me!.profile!.university?.name ?? me!.profile!.universityName}`}
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <span>
+              {me!.profile!.major}
+              {(me!.profile!.university?.name ?? me!.profile!.universityName) &&
+                ` · ${me!.profile!.university?.name ?? me!.profile!.universityName}`}
+            </span>
+            {me!.profile!.stemEligible && (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+                STEM
+              </span>
+            )}
           </p>
         </div>
-        {doneCount < setupSteps.length && (
-          <div className="w-full max-w-xs">
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>Getting set up</span>
-              <span>{doneCount}/{setupSteps.length}</span>
+        <div className="flex flex-col items-start gap-3 sm:items-end">
+          <Link
+            href="/advisor"
+            className="rounded-lg bg-ink px-4 py-2 text-sm font-medium text-white transition hover:bg-ink-700"
+          >
+            Ask AI
+          </Link>
+          {doneCount < setupSteps.length && (
+            <div className="w-full max-w-xs">
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span>Getting set up</span>
+                <span>{doneCount}/{setupSteps.length}</span>
+              </div>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-beacon transition-all"
+                  style={{ width: `${(doneCount / setupSteps.length) * 100}%` }}
+                />
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {setupSteps.filter((s) => !s.done).map((s) => (
+                  <Link key={s.label} href={s.href ?? '#'} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-200">
+                    {s.label} →
+                  </Link>
+                ))}
+              </div>
             </div>
-            <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-beacon transition-all"
-                style={{ width: `${(doneCount / setupSteps.length) * 100}%` }}
-              />
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {setupSteps.filter((s) => !s.done).map((s) => (
-                <Link key={s.label} href={s.href ?? '#'} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-200">
-                  {s.label} →
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {activeCpt && (
         <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
           Active CPT{activeCpt.employerName ? ` at ${activeCpt.employerName}` : ''} — expires in {daysUntil(activeCpt.endDate)} days.
         </div>
+      )}
+
+      {(docs.data?.length ?? 0) === 0 && (
+        <Card className="flex flex-col items-center gap-2 border-dashed py-6 text-center">
+          <p className="text-sm font-medium text-ink">Upload your I-20 to unlock your full timeline and auto-fill your dates.</p>
+          <Link href="/documents" className="text-sm font-medium text-ink underline">Upload now →</Link>
+        </Card>
       )}
 
       <ArrivalChecklist programStartDate={me!.profile!.programStartDate} />
