@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CareerService } from './career.service';
 import { CareerController } from './career.controller';
+import { H1bService } from './h1b.service';
 
-@Module({ controllers: [CareerController], providers: [CareerService] })
+@Module({ controllers: [CareerController], providers: [CareerService, H1bService] })
 export class CareerModule {}

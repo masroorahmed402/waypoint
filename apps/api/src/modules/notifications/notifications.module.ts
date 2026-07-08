@@ -12,5 +12,6 @@ import { ResendEmailService } from './resend.email';
     AppConfig,
     { provide: EMAIL_SERVICE, useClass: ResendEmailService },
   ],
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}

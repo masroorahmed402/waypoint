@@ -11,9 +11,63 @@ import { Card } from '@/components/ui';
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string }
 interface CptOptRecord { type: string; startDate: string; endDate: string; employerName: string | null }
 interface CptSummary { records: CptOptRecord[] }
+interface DsoContact { name: string; title: string | null; schoolName: string | null }
 
 function daysUntil(iso: string) {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+}
+
+interface ScoreItem { label: string; points: number; earned: boolean; href?: string; disabled?: boolean }
+
+function ProfileStrength({ items }: { items: ScoreItem[] }) {
+  const max = items.reduce((s, i) => s + (i.disabled ? 0 : i.points), 0);
+  const score = items.reduce((s, i) => s + (i.earned ? i.points : 0), 0);
+  const pct = max > 0 ? Math.round((score / max) * 100) : 0;
+  const r = 26;
+  const circumference = 2 * Math.PI * r;
+  const offset = circumference * (1 - pct / 100);
+  const nextUp = items
+    .filter((i) => !i.earned && !i.disabled && i.href)
+    .sort((a, b) => b.points - a.points)[0];
+
+  return (
+    <Card>
+      <h2 className="font-display font-semibold text-ink">Profile strength</h2>
+      <div className="mt-4 flex items-center gap-5">
+        <div className="relative h-16 w-16 shrink-0">
+          <svg width="64" height="64" viewBox="0 0 64 64" className="-rotate-90">
+            <circle cx="32" cy="32" r={r} fill="none" stroke="#e2e8f0" strokeWidth="6" />
+            <circle
+              cx="32" cy="32" r={r} fill="none" stroke="#059669" strokeWidth="6" strokeLinecap="round"
+              strokeDasharray={circumference} strokeDashoffset={offset}
+              className="transition-all"
+            />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="font-display text-lg font-semibold text-ink">{pct}</span>
+          </div>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm text-slate-500">{score}/{max} points</p>
+          {nextUp ? (
+            <Link href={nextUp.href!} className="mt-1 inline-block text-sm font-medium text-ink underline">
+              Do this next: {nextUp.label} (+{nextUp.points})
+            </Link>
+          ) : (
+            <p className="mt-1 text-sm text-emerald-700">Your profile is fully set up 🎉</p>
+          )}
+        </div>
+      </div>
+      <div className="mt-4 space-y-1.5">
+        {items.map((i) => (
+          <div key={i.label} className={`flex items-center justify-between text-xs ${i.disabled ? 'text-slate-300' : i.earned ? 'text-emerald-700' : 'text-slate-500'}`}>
+            <span>{i.earned ? '✓' : '○'} {i.label}{i.disabled ? ' (coming soon)' : ''}</span>
+            <span>{i.points}pt</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
 
 const STAGE_LABEL: Record<string, string> = {
@@ -52,6 +106,12 @@ function DashboardInner() {
     enabled: hasProfile,
   });
 
+  const dso = useQuery({
+    queryKey: ['dso-contact'],
+    queryFn: () => api<DsoContact | null>('/immigration/dso-contact'),
+    enabled: hasProfile,
+  });
+
   if (!hasProfile) return <Onboarding />;
 
   const now = new Date();
@@ -72,6 +132,16 @@ function DashboardInner() {
   ];
   const doneCount = setupSteps.filter((s) => s.done).length;
   const urgentCount = next.filter((d) => daysUntil(d.dueDate) <= 7).length;
+
+  const scoreItems: ScoreItem[] = [
+    { label: 'Profile filled in', points: 25, earned: hasProfile, href: '/settings' },
+    { label: 'I-20 uploaded', points: 20, earned: (docs.data?.length ?? 0) > 0, href: '/documents' },
+    { label: 'At least 1 document', points: 15, earned: (docs.data?.length ?? 0) > 0, href: '/documents' },
+    { label: 'At least 1 job application', points: 15, earned: pipeline.length > 0, href: '/applications' },
+    { label: 'SEVIS ID stored', points: 10, earned: !!(me!.profile as any)?.sevisIdEncrypted, href: '/documents' },
+    { label: 'DSO contact saved', points: 10, earned: !!dso.data, href: '/immigration' },
+    { label: 'Push notifications enabled', points: 5, earned: false, disabled: true },
+  ];
 
   return (
     <div className="space-y-8">
@@ -136,6 +206,8 @@ function DashboardInner() {
       )}
 
       <ArrivalChecklist programStartDate={me!.profile!.programStartDate} />
+
+      <ProfileStrength items={scoreItems} />
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="overflow-hidden">

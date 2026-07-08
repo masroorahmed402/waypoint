@@ -110,6 +110,33 @@ export class NotificationsService {
     return count;
   }
 
+  async sendStatusChangeEmail(
+    to: string,
+    firstName: string,
+    receiptNumber: string,
+    caseType: string,
+    oldStatus: string,
+    newStatus: string,
+  ) {
+    await this.email.send({
+      to,
+      subject: `Your ${caseType} case status changed — ${receiptNumber}`,
+      html: `
+        <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto">
+          <p>Hi ${escapeHtml(firstName)},</p>
+          <p>Your <strong>${escapeHtml(caseType)}</strong> case <strong>${escapeHtml(receiptNumber)}</strong> has a new status:</p>
+          <div style="padding:16px;background:#f0fdf4;border-radius:8px;margin:16px 0">
+            <p style="margin:0;color:#166534;font-weight:600">${escapeHtml(newStatus)}</p>
+          </div>
+          <p style="color:#64748b;font-size:13px">Previous status: ${escapeHtml(oldStatus)}</p>
+          <p>Check the full details at <a href="https://egov.uscis.gov/casestatus/mycasestatus.do">USCIS case status</a>.</p>
+          <p style="color:#94a3b8;font-size:12px">— ${APP_NAME}</p>
+        </div>
+      `,
+      text: `Hi ${firstName}, your ${caseType} case ${receiptNumber} changed from "${oldStatus}" to "${newStatus}".`,
+    });
+  }
+
   private buildEmail(to: string, firstName: string, title: string, notes: string | null, days: number) {
     const when = days <= 1 ? 'tomorrow' : `in ${days} days`;
     const subject = `${title} — ${when}`;

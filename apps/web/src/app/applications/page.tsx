@@ -13,6 +13,7 @@ interface App {
 }
 
 interface CompanyResult { id: string; name: string; domain: string | null; sponsorsH1b: boolean | null }
+interface H1bData { totalPetitions: number; sponsorsInternational: boolean | null; error?: string }
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const fmtSalary = (min?: number, max?: number) => {
@@ -161,6 +162,7 @@ function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; on
                   {salary}
                 </span>
               )}
+              <H1bBadge companyName={a.companyName} compact />
             </div>
             {a.appliedAt && (
               <div className="mt-1.5 text-[11px] text-slate-400">Applied {fmtDate(a.appliedAt)}</div>
@@ -240,6 +242,9 @@ function AddForm({ onClose, onSaved }: { onClose: () => void; onSaved: () => voi
         <div>
           <Label>Company</Label>
           <CompanyTypeahead value={f.companyName} onChange={onCompanyNameChange} onSelect={onSelectCompany} />
+          {f.companyName.trim() && (
+            <div className="mt-1.5"><H1bBadge companyName={f.companyName} /></div>
+          )}
         </div>
         <div><Label>Role</Label><Input value={f.roleTitle} onChange={set('roleTitle')} /></div>
         <div><Label>Job URL (optional)</Label><Input value={f.url} onChange={set('url')} /></div>
@@ -319,5 +324,32 @@ function CompanyTypeahead({ value, onChange, onSelect }: {
         </div>
       )}
     </div>
+  );
+}
+
+/** Live H-1B disclosure lookup for a company name — cached per unique name by react-query. */
+function H1bBadge({ companyName, compact }: { companyName: string; compact?: boolean }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['h1b', companyName.toLowerCase().trim()],
+    queryFn: () => api<H1bData>(`/career/companies/${encodeURIComponent(companyName)}/h1b`),
+    enabled: !!companyName.trim(),
+    staleTime: 60 * 60 * 1000,
+  });
+
+  if (!companyName.trim()) return null;
+  if (isLoading) {
+    return <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">? Checking…</span>;
+  }
+  if (!data || data.error || !data.totalPetitions) {
+    return (
+      <span className={`inline-block rounded bg-amber-100 px-2 py-0.5 font-medium text-amber-700 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+        ⚠ No H-1B history found
+      </span>
+    );
+  }
+  return (
+    <span className={`inline-block rounded bg-emerald-100 px-2 py-0.5 font-medium text-emerald-700 ${compact ? 'text-[10px]' : 'text-[11px]'}`}>
+      ✓ {data.totalPetitions.toLocaleString()} H-1B petitions in {2024}
+    </span>
   );
 }

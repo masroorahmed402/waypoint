@@ -1,17 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AppConfig } from '../../config/app.config';
 
-const MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = 'llama-3.1-70b-versatile';
 
 @Injectable()
 export class AiAdvisorService {
-  private client: Anthropic | null = null;
+  private client: OpenAI | null = null;
 
   constructor(private prisma: PrismaService, private config: AppConfig) {
-    if (config.anthropicApiKey) {
-      this.client = new Anthropic({ apiKey: config.anthropicApiKey });
+    if (config.groqApiKey) {
+      this.client = new OpenAI({
+        apiKey: config.groqApiKey,
+        baseURL: 'https://api.groq.com/openai/v1',
+      });
     }
   }
 
@@ -74,6 +77,7 @@ Student profile:
 Always end immigration-related answers with: "Confirm this with your DSO before taking action."`;
 
     const messages = [
+      { role: 'system' as const, content: systemPrompt },
       ...conversationHistory.slice(-6).map((m) => ({
         role: (m.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
         content: m.content,
@@ -81,14 +85,13 @@ Always end immigration-related answers with: "Confirm this with your DSO before 
       { role: 'user' as const, content: question },
     ];
 
-    const response = await this.client.messages.create({
+    const response = await this.client.chat.completions.create({
       model: MODEL,
       max_tokens: 400,
-      system: systemPrompt,
       messages,
     });
 
-    const answer = response.content[0].type === 'text' ? response.content[0].text : '';
+    const answer = response.choices[0].message.content ?? '';
 
     return {
       answer,
@@ -113,7 +116,7 @@ Always end immigration-related answers with: "Confirm this with your DSO before 
       general_question: 'asking a general immigration question',
     };
 
-    const response = await this.client.messages.create({
+    const response = await this.client.chat.completions.create({
       model: MODEL,
       max_tokens: 500,
       messages: [
@@ -133,7 +136,7 @@ Write subject line and email body. Be professional and concise. Include placehol
       ],
     });
 
-    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    const text = response.choices[0].message.content ?? '';
     const lines = text.split('\n');
     const subjectLine = lines.find((l) => l.toLowerCase().startsWith('subject:'))?.replace(/^subject:\s*/i, '') || 'Request from F-1 Student';
     const body = lines.filter((l) => !l.toLowerCase().startsWith('subject:')).join('\n').trim();

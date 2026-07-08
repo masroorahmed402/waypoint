@@ -25,6 +25,20 @@ interface CptSummary {
   warning: string | null;
 }
 interface DsoContact { name: string; title: string | null; schoolName: string | null }
+interface UscisCase {
+  id: string; receiptNumber: string; caseType: string;
+  lastStatus: string | null; lastCheckedAt: string | null;
+}
+
+const CASE_TYPES = ['OPT', 'EAD', 'I-765', 'Other'];
+
+function statusColor(status: string | null) {
+  if (!status) return 'bg-slate-100 text-slate-500';
+  const s = status.toLowerCase();
+  if (s.includes('approved') || s.includes('card') || s.includes('produced')) return 'bg-emerald-100 text-emerald-700';
+  if (s.includes('denied') || s.includes('rfe') || s.includes('request for evidence')) return 'bg-red-100 text-red-700';
+  return 'bg-amber-100 text-amber-700';
+}
 
 const EMAIL_PURPOSES = [
   { value: 'opt_request', label: 'Requesting OPT authorization' },
@@ -54,6 +68,36 @@ function Inner() {
   const dl = useQuery({ queryKey: ['deadlines', 'all'], queryFn: () => api<Deadline[]>('/immigration/deadlines') });
   const cpt = useQuery({ queryKey: ['cpt-summary'], queryFn: () => api<CptSummary>('/immigration/cpt-summary') });
   const dso = useQuery({ queryKey: ['dso-contact'], queryFn: () => api<DsoContact | null>('/immigration/dso-contact') });
+  const cases = useQuery({ queryKey: ['uscis-cases'], queryFn: () => api<UscisCase[]>('/immigration/cases') });
+
+  const [newReceipt, setNewReceipt] = useState('');
+  const [newCaseType, setNewCaseType] = useState(CASE_TYPES[0]);
+  const [caseError, setCaseError] = useState('');
+  const [checkingKey, setCheckingKey] = useState<string | null>(null);
+
+  const addCase = useMutation({
+    mutationFn: () => api('/immigration/cases', { method: 'POST', body: JSON.stringify({ receiptNumber: newReceipt, caseType: newCaseType }) }),
+    onSuccess: () => {
+      setNewReceipt(''); setCaseError('');
+      qc.invalidateQueries({ queryKey: ['uscis-cases'] });
+    },
+    onError: (e: any) => setCaseError(e.message ?? 'Could not add that case.'),
+  });
+
+  const removeCase = useMutation({
+    mutationFn: (receiptNumber: string) => api(`/immigration/cases/${receiptNumber}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['uscis-cases'] }),
+  });
+
+  async function checkNow(receiptNumber: string) {
+    setCheckingKey(receiptNumber);
+    try {
+      await api(`/immigration/cases/${receiptNumber}/check`);
+      qc.invalidateQueries({ queryKey: ['uscis-cases'] });
+    } finally {
+      setCheckingKey(null);
+    }
+  }
 
   async function exportCalendar() {
     setExporting(true);
@@ -256,6 +300,72 @@ function Inner() {
             </p>
           </Card>
         )}
+
+        <Card>
+          <h2 className="font-display font-semibold text-ink">Track your USCIS case</h2>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <input
+              value={newReceipt}
+              onChange={(e) => setNewReceipt(e.target.value)}
+              placeholder="Receipt number (e.g. EAC2490123456)"
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10"
+            />
+            <select
+              value={newCaseType}
+              onChange={(e) => setNewCaseType(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              {CASE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <Button onClick={() => addCase.mutate()} disabled={addCase.isPending || !newReceipt.trim()}>
+              Add
+            </Button>
+          </div>
+          {caseError && <p className="mt-2 text-sm text-red-600">{caseError}</p>}
+
+          <div className="mt-4 space-y-2">
+            {(cases.data ?? []).length === 0 ? (
+              <p className="text-sm text-slate-400">No cases tracked yet.</p>
+            ) : (
+              cases.data!.map((c) => (
+                <div key={c.id} className="rounded-lg border border-slate-200 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <span className="text-sm font-semibold text-ink">{c.receiptNumber}</span>
+                      <span className="ml-2 text-xs text-slate-500">{c.caseType}</span>
+                    </div>
+                    <span className={`rounded px-2 py-0.5 text-xs font-medium ${statusColor(c.lastStatus)}`}>
+                      {c.lastStatus ?? 'Not checked yet'}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-slate-400">
+                      {c.lastCheckedAt ? `Last checked ${fmt(c.lastCheckedAt)}` : 'Never checked'}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        className="px-2 py-1 text-xs"
+                        onClick={() => checkNow(c.receiptNumber)}
+                        disabled={checkingKey === c.receiptNumber}
+                      >
+                        {checkingKey === c.receiptNumber ? 'Checking…' : 'Check now'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="px-2 py-1 text-xs text-red-600"
+                        onClick={() => removeCase.mutate(c.receiptNumber)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <p className="mt-3 text-xs text-slate-400">We check automatically every 6 hours and email you when status changes.</p>
+        </Card>
       </div>
 
       {draftOpen && (

@@ -35,7 +35,7 @@ export class AppConfig {
   get s3Endpoint() { return this.cs.get<string>('S3_ENDPOINT') ?? ''; }
   get fieldEncryptionKey() { return this.cs.getOrThrow<string>('FIELD_ENCRYPTION_KEY'); }
   get resendApiKey() { return this.cs.get<string>('RESEND_API_KEY') ?? ''; }
-  get anthropicApiKey() { return this.cs.get<string>('ANTHROPIC_API_KEY') ?? ''; }
+  get groqApiKey() { return this.cs.get<string>('GROQ_API_KEY') ?? ''; }
   get emailFrom() { return this.cs.get<string>('EMAIL_FROM') ?? 'Waypoint <onboarding@resend.dev>'; }
   get google() {
     return {

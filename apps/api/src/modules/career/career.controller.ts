@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CareerService } from './career.service';
+import { H1bService } from './h1b.service';
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator';
 import { CreateApplicationDto, UpdateApplicationDto } from './dto/application.dto';
 import { UpsertCompanyDto } from './dto/company.dto';
@@ -7,7 +9,7 @@ import { ApplicationStage } from '@prisma/client';
 
 @Controller('career')
 export class CareerController {
-  constructor(private svc: CareerService) {}
+  constructor(private svc: CareerService, private h1b: H1bService) {}
 
   @Get('applications')
   list(
@@ -47,5 +49,11 @@ export class CareerController {
   @Post('companies')
   upsertCompany(@Body() dto: UpsertCompanyDto) {
     return this.svc.upsertCompanyByName(dto);
+  }
+
+  @Get('companies/:name/h1b')
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  h1bData(@Param('name') name: string) {
+    return this.h1b.getCompanySponsorshipData(name);
   }
 }
