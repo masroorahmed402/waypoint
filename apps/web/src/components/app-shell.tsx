@@ -7,6 +7,14 @@ import { clsx } from './clsx';
 import { APP_NAME } from '@/lib/brand';
 import NotificationBell from './notification-bell';
 
+function SparkleIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2z" />
+    </svg>
+  );
+}
+
 const NAV = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/immigration', label: 'Immigration' },
@@ -41,13 +49,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-6">
             <Link href="/dashboard" className="font-display text-lg font-semibold tracking-tight text-ink">{APP_NAME}</Link>
             <nav className="hidden gap-1 md:flex">
-              {NAV.map((n) => (
-                <Link key={n.href} href={n.href}
-                  className={clsx('rounded-md px-3 py-1.5 text-sm',
-                    pathname === n.href ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-500 hover:text-slate-900')}>
-                  {n.label}
-                </Link>
-              ))}
+              {NAV.map((n) =>
+                n.href === '/advisor' ? (
+                  <Link key={n.href} href={n.href}
+                    className={clsx('flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium transition',
+                      pathname === n.href ? 'bg-beacon text-ink' : 'bg-beacon/20 text-beacon-700 hover:bg-beacon/30')}>
+                    <SparkleIcon /> {n.label}
+                  </Link>
+                ) : (
+                  <Link key={n.href} href={n.href}
+                    className={clsx('rounded-md px-3 py-1.5 text-sm',
+                      pathname === n.href ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-500 hover:text-slate-900')}>
+                    {n.label}
+                  </Link>
+                ),
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-1">
@@ -71,13 +87,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         {menuOpen && (
           <nav className="border-t border-slate-200 bg-white px-4 py-2 md:hidden">
-            {NAV.map((n) => (
-              <Link key={n.href} href={n.href}
-                className={clsx('block rounded-md px-3 py-2.5 text-sm',
-                  pathname === n.href ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-600 hover:text-slate-900')}>
-                {n.label}
-              </Link>
-            ))}
+            {NAV.map((n) =>
+              n.href === '/advisor' ? (
+                <Link key={n.href} href={n.href}
+                  className={clsx('my-1 flex items-center gap-1.5 rounded-full px-3 py-2.5 text-sm font-medium',
+                    pathname === n.href ? 'bg-beacon text-ink' : 'bg-beacon/20 text-beacon-700')}>
+                  <SparkleIcon /> {n.label}
+                </Link>
+              ) : (
+                <Link key={n.href} href={n.href}
+                  className={clsx('block rounded-md px-3 py-2.5 text-sm',
+                    pathname === n.href ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-600 hover:text-slate-900')}>
+                  {n.label}
+                </Link>
+              ),
+            )}
             <div className="mt-1 flex items-center justify-between border-t border-slate-100 px-3 pt-3">
               <span className="text-sm text-slate-500">{me.firstName}</span>
               <button onClick={logout} className="text-sm font-medium text-slate-500 hover:text-slate-900">Log out</button>
