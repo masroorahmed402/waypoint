@@ -71,6 +71,7 @@ function Inner() {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
 
   const profile = me?.profile;
   const [pf, setPf] = useState({
@@ -221,10 +222,24 @@ function Inner() {
           {!confirmDelete ? (
             <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete my account</Button>
           ) : (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium">Are you sure?</span>
-              <Button variant="danger" onClick={remove}>Yes, delete everything</Button>
-              <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                Type <strong>DELETE</strong> to confirm. This removes everything — your profile, timeline,
+                documents, and applications. Cannot be undone.
+              </p>
+              <Input
+                value={deleteInput}
+                onChange={(e) => setDeleteInput(e.target.value)}
+                placeholder="Type DELETE to confirm"
+              />
+              <div className="flex gap-2">
+                <Button variant="danger" disabled={deleteInput !== 'DELETE'} onClick={remove}>
+                  Delete everything
+                </Button>
+                <Button variant="ghost" onClick={() => { setConfirmDelete(false); setDeleteInput(''); }}>
+                  Cancel
+                </Button>
+              </div>
             </div>
           )}
         </div>
