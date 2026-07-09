@@ -176,9 +176,13 @@ function AdvisorInner() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-80px)] gap-4">
+    // Negative margins cancel AppShell's <main> padding (including the pb-24
+    // reserved for the mobile bottom tab bar) so this page can own its own
+    // exact h-[calc(100vh-4rem)] — 4rem matches the sticky header's h-16 —
+    // instead of double-padding and overflowing the actual viewport.
+    <div className="-mx-4 -mt-6 -mb-24 flex h-[calc(100vh-4rem)] overflow-hidden sm:-mx-6 md:-mb-6">
       {/* sidebar */}
-      <div className="hidden w-64 shrink-0 flex-col border-r border-slate-100 bg-slate-50/50 p-4 lg:flex">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-slate-100 bg-slate-50/50 p-4 lg:flex">
         <button
           onClick={newConversation}
           className="mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
@@ -199,12 +203,13 @@ function AdvisorInner() {
             </button>
           ))}
         </div>
-      </div>
+      </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-100 px-6 py-4">
           <div>
-            <h1 className="font-display text-2xl font-semibold text-ink">Immigration Advisor</h1>
+            <h1 className="font-display text-xl font-semibold text-ink">Immigration Advisor</h1>
             <p className="text-sm text-slate-500">Personalized to your timeline, powered by AI</p>
           </div>
           {messages.length > 0 && (
@@ -213,12 +218,15 @@ function AdvisorInner() {
         </div>
 
         {!hasProfile && (
-          <Card className="mb-4 border-amber-200 bg-amber-50">
-            <p className="text-sm text-amber-800">Complete your onboarding first so the advisor knows your actual dates and situation.</p>
-          </Card>
+          <div className="flex-shrink-0 px-6 pt-4">
+            <Card className="border-amber-200 bg-amber-50">
+              <p className="text-sm text-amber-800">Complete your onboarding first so the advisor knows your actual dates and situation.</p>
+            </Card>
+          </div>
         )}
 
-        <div className="mb-4 flex flex-wrap gap-2">
+        {/* Quick actions */}
+        <div className="flex flex-shrink-0 flex-wrap gap-2 border-b border-slate-100 px-6 py-3">
           {QUICK_ACTIONS.map((a) => (
             <button
               key={a.label}
@@ -230,79 +238,83 @@ function AdvisorInner() {
           ))}
         </div>
 
-        {messages.length === 0 && (
-          <div className="mb-4">
-            <p className="mb-3 text-sm text-slate-500">
-              Hi {me?.firstName}! I&apos;m your {APP_NAME} advisor.
-              {hasProfile && me?.profile && ` I know you're studying ${me.profile.major} at ${me.profile.university?.name ?? me.profile.universityName ?? 'your university'} and your program ends ${new Date(me.profile.programEndDate).toLocaleDateString()}.`}
-              {' '}What can I help you with?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTED.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => send(q)}
-                  className="rounded-full border border-slate-300 px-3 py-1.5 text-xs text-slate-600 transition hover:border-ink hover:bg-slate-100"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex-1 space-y-4 overflow-y-auto pb-4">
-          {messages.map((m, i) => (
-            <div key={i} className={`flex items-end gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {m.role === 'assistant' && (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-beacon text-xs font-bold text-ink">W</span>
-              )}
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                  m.role === 'user'
-                    ? 'rounded-br-sm bg-ink text-white'
-                    : 'rounded-bl-sm border border-slate-100 bg-white text-slate-800'
-                }`}
-              >
-                {m.content}
-                {m.role === 'assistant' && (
-                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-amber-600">
-                    Not legal advice — confirm with your DSO
-                  </p>
-                )}
+        {/* Messages — the ONLY scrollable area */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {messages.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center text-center">
+              <p className="mb-6 max-w-lg text-base text-slate-700">
+                Hi {me?.firstName}! I&apos;m your {APP_NAME} advisor.
+                {hasProfile && me?.profile && ` I know you're studying ${me.profile.major} at ${me.profile.university?.name ?? me.profile.universityName ?? 'your university'} and your program ends ${new Date(me.profile.programEndDate).toLocaleDateString()}.`}
+                {' '}What can I help you with?
+              </p>
+              <div className="flex max-w-2xl flex-wrap justify-center gap-2">
+                {SUGGESTED.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => send(q)}
+                    className="rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-600 transition hover:border-ink hover:bg-slate-50"
+                  >
+                    {q}
+                  </button>
+                ))}
               </div>
             </div>
-          ))}
-          {loading && (
-            <div className="flex items-end gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-beacon text-xs font-bold text-ink">W</span>
-              <div className="rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <div className="flex gap-1">
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '0ms' }} />
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '150ms' }} />
-                  <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '300ms' }} />
+          ) : (
+            <div className="mx-auto max-w-3xl space-y-4">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex items-end gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {m.role === 'assistant' && (
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-beacon text-xs font-bold text-ink">W</span>
+                  )}
+                  <div
+                    className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                      m.role === 'user'
+                        ? 'rounded-br-sm bg-ink text-white'
+                        : 'rounded-bl-sm border border-slate-100 bg-white text-slate-800'
+                    }`}
+                  >
+                    {m.content}
+                    {m.role === 'assistant' && (
+                      <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-amber-600">
+                        Not legal advice — confirm with your DSO
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
-          )}
-          {!loading && contextualFollowUps.length > 0 && (
-            <div className="flex flex-wrap gap-2 pl-9">
-              {contextualFollowUps.map((q) => (
-                <button
-                  key={q}
-                  onClick={() => send(q)}
-                  className="rounded-full border border-beacon/40 bg-beacon/10 px-3 py-1.5 text-xs text-ink transition hover:bg-beacon/20"
-                >
-                  {q}
-                </button>
               ))}
+              {loading && (
+                <div className="flex items-end gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-beacon text-xs font-bold text-ink">W</span>
+                  <div className="rounded-2xl rounded-bl-sm border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <div className="flex gap-1">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '0ms' }} />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '150ms' }} />
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-slate-400" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {!loading && contextualFollowUps.length > 0 && (
+                <div className="flex flex-wrap gap-2 pl-9">
+                  {contextualFollowUps.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => send(q)}
+                      className="rounded-full border border-beacon/40 bg-beacon/10 px-3 py-1.5 text-xs text-ink transition hover:bg-beacon/20"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div ref={bottomRef} />
             </div>
           )}
-          <div ref={bottomRef} />
         </div>
 
-        <div className="border-t border-slate-100 pt-4">
-          <div className="flex gap-2">
+        {/* Input — always pinned to bottom */}
+        <div className="flex-shrink-0 border-t border-slate-100 bg-white px-6 py-4">
+          <div className="mx-auto flex max-w-3xl gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
