@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -132,6 +132,7 @@ function Inner() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['opt-unemployment-summary'] }),
   });
 
+  const receiptInputRef = useRef<HTMLInputElement>(null);
   const [newReceipt, setNewReceipt] = useState('');
   const [newCaseType, setNewCaseType] = useState(CASE_TYPES[0]);
   const [caseError, setCaseError] = useState('');
@@ -228,7 +229,6 @@ function Inner() {
   const activeCptOpt = cpt.data?.records.find(
     (r) => new Date(r.startDate) <= now && new Date(r.endDate) >= now,
   );
-  const showTrackingBanner = !!activeCptOpt && (cases.data ?? []).length === 0;
 
   const university = me?.profile?.university as any;
   const issUrl: string | undefined = university?.issOfficeUrl;
@@ -243,6 +243,24 @@ function Inner() {
 
   const labelStyle = (s: Milestone['status']) =>
     s === 'PAST' ? 'text-slate-400' : s === 'CURRENT' ? 'text-ink' : 'text-slate-700';
+
+  const badgeStyle = (s: Milestone['status']) =>
+    s === 'PAST'
+      ? 'bg-slate-100 text-slate-400'
+      : s === 'CURRENT'
+      ? 'bg-beacon/20 text-beacon-600'
+      : 'bg-slate-50 text-slate-500';
+
+  // USCIS case tracking only applies once OPT is in the picture — CPT is school-authorized
+  // and never gets a USCIS receipt number. Prompt either when an OPT record already exists,
+  // or the student is nearing/just past their program end date, when the OPT filing window
+  // (90 days before through 60 days after) is the reason they'd be filing at all.
+  const hasOptRecord = (cpt.data?.records ?? []).some((r) => r.type === 'OPT');
+  const daysToProgramEnd = me?.profile?.programEndDate
+    ? Math.ceil((new Date(me.profile.programEndDate).getTime() - now.getTime()) / 86_400_000)
+    : null;
+  const nearOptWindow = daysToProgramEnd !== null && Math.abs(daysToProgramEnd) <= 90;
+  const showUscisPrompt = (hasOptRecord || nearOptWindow) && (cases.data ?? []).length === 0;
 
   const grouped = URGENCY_GROUPS.map((g) => ({
     ...g,
@@ -262,9 +280,22 @@ function Inner() {
       </div>
       <Disclaimer />
 
-      {showTrackingBanner && (
-        <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-200">
-          You appear to be on active {activeCptOpt!.type}. Track your USCIS case status here to get notified of any changes.
+      {showUscisPrompt && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm text-amber-800">
+            {hasOptRecord
+              ? 'You have an OPT authorization on record. Add your I-765 receipt number to get notified the moment your EAD card status changes — no more manually checking the USCIS website.'
+              : 'Your program end date is coming up, which is usually when students file for OPT. Once you have an I-765 receipt number, add it here to get notified the moment your EAD card status changes.'}
+          </p>
+          <button
+            onClick={() => {
+              receiptInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              receiptInputRef.current?.focus();
+            }}
+            className="mt-2 text-sm font-medium text-amber-900 hover:underline"
+          >
+            Add receipt number →
+          </button>
         </div>
       )}
 
@@ -307,6 +338,7 @@ function Inner() {
           <h2 className="font-display font-semibold text-ink">Track your USCIS case</h2>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <input
+              ref={receiptInputRef}
               value={newReceipt}
               onChange={(e) => setNewReceipt(e.target.value)}
               placeholder="Receipt number (e.g. EAC2490123456)"
@@ -376,28 +408,50 @@ function Inner() {
           <h2 className="font-display font-semibold text-ink">Your F-1 journey</h2>
           <Button variant="ghost" className="text-xs" onClick={() => setDraftOpen(true)}>Draft DSO Email</Button>
         </div>
-        <div className="mt-6 overflow-x-auto pb-2">
-          <div className="flex min-w-max items-start gap-0 sm:min-w-0">
-            {tl.data?.milestones.map((m, i) => (
-              <div key={m.key} className="group relative flex w-48 shrink-0 flex-col items-center px-2 text-center sm:w-auto sm:flex-1">
-                {i > 0 && (
-                  <span
-                    className="absolute right-1/2 top-3 hidden h-px w-full sm:block"
-                    style={{ background: m.status === 'UPCOMING' ? '#e2e8f0' : 'linear-gradient(90deg,#e6a53a,#cbd5e1)' }}
-                  />
-                )}
-                <span className={`relative z-10 h-6 w-6 shrink-0 rounded-full border-2 ${dotStyle(m.status)}`} />
-                <span className={`mt-3 text-sm font-semibold ${labelStyle(m.status)}`}>{m.label}</span>
-                <span className="mt-1 text-xs text-slate-400">
-                  {m.date ? formatDeadline(m.date) : m.dateRange ? `${formatDate(m.dateRange.start)} – ${formatDate(m.dateRange.end)}` : ''}
-                </span>
-                <p className="mt-2 hidden text-xs leading-relaxed text-slate-600 group-hover:block sm:block">{m.explanation}</p>
-                <button
-                  onClick={() => askAboutMilestone(m.label)}
-                  className="mt-2 rounded-full border border-slate-300 px-2.5 py-1 text-[11px] font-medium text-ink transition hover:bg-slate-100"
+        <div className="relative mt-6">
+          <div className="absolute bottom-1 left-4 top-1 w-0.5 bg-slate-200" />
+          <div className="space-y-7">
+            {tl.data?.milestones.map((m) => (
+              <div key={m.key} className="relative flex gap-4 pl-11">
+                <span
+                  className={`absolute left-0 top-0.5 z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${dotStyle(m.status)}`}
                 >
-                  Ask AI about this
-                </button>
+                  {m.status === 'PAST' && <span className="text-xs text-slate-500">✓</span>}
+                </span>
+                <div className="flex-1 pb-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h3 className={`font-display text-base font-semibold ${labelStyle(m.status)}`}>{m.label}</h3>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgeStyle(m.status)}`}>
+                      {m.status === 'PAST'
+                        ? 'passed'
+                        : m.status === 'CURRENT'
+                        ? 'now'
+                        : formatDeadline(m.date ?? m.dateRange?.start ?? new Date().toISOString())}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {m.date ? formatDate(m.date) : m.dateRange ? `${formatDate(m.dateRange.start)} to ${formatDate(m.dateRange.end)}` : ''}
+                  </p>
+                  <p className={`mt-2 text-sm leading-relaxed ${m.status === 'PAST' ? 'text-slate-400' : 'text-slate-600'}`}>
+                    {m.explanation}
+                  </p>
+                  {m.sourceUrl && (
+                    <a
+                      href={m.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-block text-xs text-ink hover:underline"
+                    >
+                      Official source →
+                    </a>
+                  )}
+                  <button
+                    onClick={() => askAboutMilestone(m.label)}
+                    className="mt-2 block rounded-lg border border-slate-200 px-3 py-1 text-xs font-medium text-slate-500 transition hover:border-ink hover:text-ink"
+                  >
+                    Ask AI about this
+                  </button>
+                </div>
               </div>
             ))}
           </div>
