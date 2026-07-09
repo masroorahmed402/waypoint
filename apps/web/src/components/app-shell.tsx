@@ -24,6 +24,18 @@ const NAV = [
   { href: '/settings', label: 'Settings' },
 ];
 
+// Desktop header nav: Advisor sits alone in the center, 3 items on each side.
+const NAV_LEFT = [
+  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/immigration', label: 'Immigration' },
+  { href: '/documents', label: 'Documents' },
+];
+const NAV_RIGHT = [
+  { href: '/applications', label: 'Applications' },
+  { href: '/community', label: 'Community' },
+  { href: '/settings', label: 'Settings' },
+];
+
 // The 5 highest-traffic destinations, for the mobile bottom tab bar. Documents
 // and Community stay reachable on mobile via the hamburger menu below.
 const MOBILE_TABS = [
@@ -62,26 +74,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               Waypoint <span className="text-beacon">AI</span>
             </Link>
 
-            {/* CENTER col — nav, truly centered inside its grid cell */}
-            <nav className="hidden items-center justify-center gap-0.5 md:flex">
-              {NAV.map((n) =>
-                n.href === '/advisor' ? (
-                  // Advisor — center jewel, always beacon amber
-                  <Link
-                    key={n.href}
-                    href="/advisor"
-                    className={clsx(
-                      'mx-2 flex items-center gap-1.5 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-semibold transition-all',
-                      pathname === '/advisor'
-                        ? 'bg-beacon text-ink shadow-md'
-                        : 'bg-beacon text-ink hover:bg-beacon-600 hover:shadow-md',
-                    )}
-                  >
-                    <span>✦</span>
-                    <span>{n.label}</span>
-                  </Link>
-                ) : (
-                  // Regular nav link
+            {/* CENTER col — nav, Advisor centered with 3 items on each side */}
+            <nav className="hidden items-center justify-center gap-0 md:flex">
+              <div className="flex items-center gap-0.5">
+                {NAV_LEFT.map((n) => (
                   <Link
                     key={n.href}
                     href={n.href}
@@ -92,8 +88,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     {n.label}
                   </Link>
-                ),
-              )}
+                ))}
+              </div>
+
+              {/* Advisor — center jewel, always beacon amber */}
+              <Link
+                href="/advisor"
+                className={clsx(
+                  'mx-3 flex items-center gap-2 whitespace-nowrap rounded-2xl px-6 py-2.5 text-sm font-bold shadow-sm transition-all',
+                  pathname === '/advisor'
+                    ? 'scale-105 bg-beacon text-ink shadow-lg shadow-beacon/30'
+                    : 'bg-beacon text-ink hover:scale-105 hover:bg-beacon-600 hover:shadow-lg hover:shadow-beacon/25',
+                )}
+              >
+                <span className="text-base">✦</span>
+                <span>Advisor</span>
+              </Link>
+
+              <div className="flex items-center gap-0.5">
+                {NAV_RIGHT.map((n) => (
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    className={clsx(
+                      'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      pathname === n.href ? 'bg-slate-100 text-ink' : 'text-slate-500 hover:bg-slate-50 hover:text-ink',
+                    )}
+                  >
+                    {n.label}
+                  </Link>
+                ))}
+              </div>
             </nav>
 
             {/* RIGHT col — user info */}
