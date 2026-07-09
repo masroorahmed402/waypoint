@@ -18,9 +18,9 @@ function SparkleIcon() {
 const NAV = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/immigration', label: 'Immigration' },
-  { href: '/advisor', label: 'Advisor' },
   { href: '/documents', label: 'Documents' },
   { href: '/applications', label: 'Applications' },
+  { href: '/advisor', label: 'Advisor' },
   { href: '/community', label: 'Community' },
   { href: '/settings', label: 'Settings' },
 ];
@@ -62,19 +62,36 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               Waypoint <span className="text-beacon">AI</span>
             </Link>
             <nav className="hidden items-center gap-1 md:flex">
-              {NAV.map((n) => (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  className={clsx(
-                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                    pathname === n.href ? 'bg-ink text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-ink',
-                    n.href === '/advisor' && pathname !== n.href && 'ml-1 bg-beacon/10 text-beacon-600 hover:bg-beacon/20',
-                  )}
-                >
-                  {n.href === '/advisor' ? <span className="inline-flex items-center gap-1"><SparkleIcon /> {n.label}</span> : n.label}
-                </Link>
-              ))}
+              {NAV.map((n) =>
+                n.href === '/advisor' ? (
+                  // Advisor gets special treatment — larger, beacon background, stands out
+                  <Link
+                    key={n.href}
+                    href="/advisor"
+                    className={clsx(
+                      'flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold shadow-sm transition-all',
+                      pathname === '/advisor'
+                        ? 'scale-105 bg-beacon text-ink shadow-md shadow-beacon/30'
+                        : 'bg-beacon text-ink hover:scale-105 hover:bg-beacon-600 hover:shadow-md hover:shadow-beacon/20',
+                    )}
+                  >
+                    <span className="text-base">✦</span>
+                    <span>{n.label}</span>
+                  </Link>
+                ) : (
+                  // Regular nav link
+                  <Link
+                    key={n.href}
+                    href={n.href}
+                    className={clsx(
+                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      pathname === n.href ? 'bg-slate-100 font-semibold text-ink' : 'text-slate-600 hover:bg-slate-50 hover:text-ink',
+                    )}
+                  >
+                    {n.label}
+                  </Link>
+                ),
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-1">
