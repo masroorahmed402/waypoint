@@ -178,19 +178,24 @@ function AdvisorInner() {
   return (
     <div className="flex h-[calc(100vh-80px)] gap-4">
       {/* sidebar */}
-      <div className="hidden w-56 shrink-0 flex-col border-r border-slate-200 pr-4 lg:flex">
-        <Button variant="ghost" className="mb-3 w-full text-sm" onClick={newConversation}>+ New conversation</Button>
+      <div className="hidden w-64 shrink-0 flex-col border-r border-slate-100 bg-slate-50/50 p-4 lg:flex">
+        <button
+          onClick={newConversation}
+          className="mb-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+        >
+          + New conversation
+        </button>
         <div className="flex-1 space-y-1 overflow-y-auto">
           {conversations.length === 0 && <p className="text-xs text-slate-400">No past conversations yet.</p>}
           {conversations.map((c) => (
             <button
               key={c.id}
               onClick={() => openConversation(c)}
-              className={`block w-full truncate rounded-lg px-2.5 py-2 text-left text-xs ${
-                activeId === c.id ? 'bg-slate-100 font-medium text-ink' : 'text-slate-500 hover:bg-slate-50'
+              className={`block w-full truncate rounded-lg px-3 py-2 text-left text-sm transition ${
+                activeId === c.id ? 'bg-ink text-white' : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              {c.title}
+              {c.title || 'New conversation'}
             </button>
           ))}
         </div>
@@ -250,19 +255,19 @@ function AdvisorInner() {
           {messages.map((m, i) => (
             <div key={i} className={`flex items-end gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {m.role === 'assistant' && (
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-beacon text-xs font-bold text-ink">W</span>
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-beacon text-xs font-bold text-ink">W</span>
               )}
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
+                className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                   m.role === 'user'
                     ? 'rounded-br-sm bg-ink text-white'
-                    : 'rounded-bl-sm border border-slate-200 bg-white text-slate-800 shadow-sm'
+                    : 'rounded-bl-sm border border-slate-100 bg-white text-slate-800'
                 }`}
               >
                 {m.content}
                 {m.role === 'assistant' && (
-                  <p className="mt-2 border-t border-amber-100 pt-1 text-xs text-amber-600">
-                    Not legal advice, confirm with your DSO
+                  <p className="mt-2 border-t border-slate-100 pt-2 text-xs text-amber-600">
+                    Not legal advice — confirm with your DSO
                   </p>
                 )}
               </div>
@@ -296,14 +301,14 @@ function AdvisorInner() {
           <div ref={bottomRef} />
         </div>
 
-        <div className="border-t border-slate-200 pt-4">
+        <div className="border-t border-slate-100 pt-4">
           <div className="flex gap-2">
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send(input)}
               placeholder="Ask anything about your visa, OPT, CPT, or immigration timeline..."
-              className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10"
+              className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/10"
             />
             <VoiceInput onResult={(text) => { setInput(text); send(text); }} />
             <Button onClick={() => send(input)} disabled={loading || !input.trim()}>

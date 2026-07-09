@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/app-shell';
-import { Button, Input, Label, Card } from '@/components/ui';
+import { Button, Input, Label } from '@/components/ui';
 import { SecurityBadge } from '@/components/security-badge';
+import { clsx } from '@/components/clsx';
 
 export default function SettingsPage() {
   return <AppShell><Inner /></AppShell>;
@@ -13,14 +14,20 @@ export default function SettingsPage() {
 
 const toDateInput = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
 
-function SectionHeading({ icon, title, subtitle }: { icon: string; title: string; subtitle: string }) {
+function SectionCard(
+  { icon, title, subtitle, danger, children }:
+  { icon: string; title: string; subtitle: string; danger?: boolean; children: React.ReactNode },
+) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-lg">{icon}</span>
-      <div>
-        <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
-        <p className="text-sm text-slate-500">{subtitle}</p>
+    <div className={clsx('overflow-hidden rounded-2xl border bg-white shadow-sm', danger ? 'border-red-200' : 'border-slate-100')}>
+      <div className={clsx('border-b px-6 py-4', danger ? 'border-red-100 bg-red-50/50' : 'border-slate-100 bg-slate-50/50')}>
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{icon}</span>
+          <h2 className="font-display font-semibold text-ink">{title}</h2>
+        </div>
+        {subtitle && <p className="ml-7 mt-0.5 text-sm text-slate-500">{subtitle}</p>}
       </div>
+      <div className="p-6">{children}</div>
     </div>
   );
 }
@@ -156,9 +163,8 @@ function Inner() {
         <p className="mt-1 text-sm text-slate-500">Manage your account, academic profile, and data.</p>
       </div>
 
-      <Card className="p-6">
-        <SectionHeading icon="👤" title="Profile" subtitle="Your name and login email." />
-        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+      <SectionCard icon="👤" title="Profile" subtitle="Your name and login email.">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div><Label>First name</Label><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></div>
             <div><Label>Last name</Label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
@@ -169,17 +175,16 @@ function Inner() {
             {saved && <span className="text-sm text-emerald-600">Saved</span>}
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
-      <Card className="p-6">
-        <SectionHeading icon="🎓" title="Academic" subtitle="Powers your timeline and auto-generated deadlines." />
-        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+      <SectionCard icon="🎓" title="Academic" subtitle="Powers your timeline and auto-generated deadlines.">
+        <div className="space-y-4">
           <div><Label>University</Label><Input value={pf.universityName} onChange={setP('universityName')} /></div>
           <div><Label>Major / program</Label><Input value={pf.major} onChange={setP('major')} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Degree level</Label>
-              <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={pf.degreeLevel} onChange={setP('degreeLevel')}>
+              <select className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" value={pf.degreeLevel} onChange={setP('degreeLevel')}>
                 <option value="BACHELORS">Bachelor&apos;s</option>
                 <option value="MASTERS">Master&apos;s</option>
                 <option value="PHD">PhD</option>
@@ -188,7 +193,7 @@ function Inner() {
             </div>
             <div>
               <Label>Visa type</Label>
-              <select className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" value={pf.visaType} onChange={setP('visaType')}>
+              <select className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm" value={pf.visaType} onChange={setP('visaType')}>
                 <option value="F1">F-1</option>
                 <option value="J1">J-1</option>
                 <option value="M1">M-1</option>
@@ -228,19 +233,17 @@ function Inner() {
             )}
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
       {taxTreaty.data?.countryOfCitizenship && (
-        <Card className="p-6">
-          <SectionHeading icon="💰" title="Tax treaty status" subtitle={`Based on your citizenship: ${taxTreaty.data.countryOfCitizenship}`} />
-          <p className="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600">{taxTreaty.data.note}</p>
+        <SectionCard icon="💰" title="Tax treaty status" subtitle={`Based on your citizenship: ${taxTreaty.data.countryOfCitizenship}`}>
+          <p className="text-sm text-slate-600">{taxTreaty.data.note}</p>
           <p className="mt-2 text-xs text-slate-400">Informational only, not tax advice. Consult a tax professional or IRS Publication 901.</p>
-        </Card>
+        </SectionCard>
       )}
 
-      <Card className="p-6">
-        <SectionHeading icon="🔐" title="Security" subtitle="Your SEVIS ID and account access." />
-        <div className="mt-5 space-y-5 border-t border-slate-100 pt-5">
+      <SectionCard icon="🔐" title="Security" subtitle="Your SEVIS ID and account access.">
+        <div className="space-y-5">
           <SevisIdCard />
           <div className="border-t border-slate-100 pt-4">
             <p className="text-sm font-medium text-ink">Password</p>
@@ -259,11 +262,10 @@ function Inner() {
             <Button variant="ghost" onClick={logout}>Log out</Button>
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
-      <Card className="p-6">
-        <SectionHeading icon="🔔" title="Notifications" subtitle="How we reach you about deadlines." />
-        <div className="mt-5 space-y-4 border-t border-slate-100 pt-5">
+      <SectionCard icon="🔔" title="Notifications" subtitle="How we reach you about deadlines.">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-ink">Email reminders</p>
@@ -281,11 +283,10 @@ function Inner() {
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Coming soon</span>
           </div>
         </div>
-      </Card>
+      </SectionCard>
 
-      <Card className="border-red-200 p-6">
-        <SectionHeading icon="🗑️" title="Danger zone" subtitle="Delete your account and all associated data." />
-        <div className="mt-4 border-t border-red-100 pt-4">
+      <SectionCard icon="🗑️" title="Danger zone" subtitle="Delete your account and all associated data." danger>
+        <div>
           {!confirmDelete ? (
             <Button variant="danger" onClick={() => setConfirmDelete(true)}>Delete my account</Button>
           ) : (
@@ -313,7 +314,7 @@ function Inner() {
             </div>
           )}
         </div>
-      </Card>
+      </SectionCard>
     </div>
   );
 }

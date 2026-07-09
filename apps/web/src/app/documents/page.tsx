@@ -67,12 +67,17 @@ const TYPE_BADGE: Record<string, string> = {
   EAD: 'bg-purple-50 text-purple-700 ring-1 ring-purple-200',
   VISA_STAMP: 'bg-orange-50 text-orange-700 ring-1 ring-orange-200',
 };
+// Icon-box background per type — a softer tint of the same badge color.
+const TYPE_ICON_BG: Record<string, string> = {
+  PASSPORT: 'bg-blue-50', I20: 'bg-emerald-50', EAD: 'bg-purple-50', VISA_STAMP: 'bg-orange-50',
+};
 const TYPE_ICON: Record<string, string> = {
   PASSPORT: '🛂', VISA_STAMP: '🛃', I20: '📄', I94: '📋', EAD: '🪪',
   DRIVERS_LICENSE: '🪪', STATE_ID: '🪪', INSURANCE: '🏥', LEASE: '🏠',
   TAX: '🧾', OFFER_LETTER: '💼', TRANSCRIPT: '🎓', OTHER: '📁',
 };
 const badgeClass = (type: string) => TYPE_BADGE[type] ?? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200';
+const iconBgClass = (type: string) => TYPE_ICON_BG[type] ?? 'bg-slate-100';
 
 const ALLOWED_EXT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp';
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -255,7 +260,7 @@ function Inner() {
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         className={`rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
-          dragOver ? 'border-beacon bg-beacon/10' : 'border-slate-300 bg-white'
+          dragOver ? 'border-beacon bg-beacon/10' : 'border-slate-200 bg-slate-50/50 hover:border-ink/30 hover:bg-slate-50'
         }`}
       >
         {uploading ? (
@@ -274,12 +279,12 @@ function Inner() {
           </div>
         ) : (
           <>
-            <div className="flex justify-center gap-3 text-3xl">📄 🛂 🪪</div>
-            <p className="mt-3 text-sm font-medium text-ink">Drag &amp; drop your I-20, passport, or visa</p>
-            <p className="mt-1 text-xs text-slate-500">or click to browse, PDF, JPG, PNG up to 20MB</p>
+            <div className="mb-3 text-3xl">📄</div>
+            <p className="text-sm font-medium text-ink">Drop your I-20, passport, or visa here</p>
+            <p className="mt-1 text-xs text-slate-400">PDF, JPG, PNG, WebP · Max 20MB</p>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               <select
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
                 value={uploadType}
                 onChange={(e) => setUploadType(e.target.value)}
               >
@@ -291,6 +296,11 @@ function Inner() {
               </select>
               <Button onClick={() => fileRef.current?.click()}>Choose file</Button>
               <input ref={fileRef} type="file" accept={ALLOWED_EXT_ACCEPT} hidden onChange={onFile} />
+            </div>
+            <div className="mx-auto mt-4 max-w-sm rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+              <p className="text-xs text-emerald-700">
+                🔒 Encrypted immediately on upload · Only you can access this · Used only for your timeline
+              </p>
             </div>
           </>
         )}
@@ -334,22 +344,28 @@ function Inner() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {activeDocs.map((d) => {
             const expiryDays = d.expiryDate ? daysUntil(d.expiryDate) : null;
-            const expiryClass =
-              expiryDays === null ? '' : expiryDays <= 60 ? 'text-red-600' : expiryDays <= 180 ? 'text-amber-600' : 'text-emerald-600';
+            const expiryBoxClass =
+              expiryDays === null ? '' : expiryDays <= 60 ? 'bg-red-50 text-red-700' : expiryDays <= 180 ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700';
             return (
               <Card key={d.id}>
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-2xl">{TYPE_ICON[d.type] ?? '📁'}</span>
-                  <span className={`rounded px-2 py-0.5 text-xs font-medium ${badgeClass(d.type)}`}>
-                    {TYPE_LABEL[d.type] ?? d.type}
-                  </span>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg ${iconBgClass(d.type)}`}>
+                      {TYPE_ICON[d.type] ?? '📁'}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-ink" title={d.fileName}>{d.fileName}</p>
+                      <p className="text-xs text-slate-400">{TYPE_LABEL[d.type] ?? d.type}</p>
+                    </div>
+                  </div>
                 </div>
-                <p className="mt-2 truncate text-sm font-medium" title={d.fileName}>{d.fileName}</p>
-                <p className="mt-1 text-xs text-slate-500">Uploaded {fmtDate(d.createdAt)}</p>
+                <span className={`mt-2 inline-block rounded px-2 py-0.5 text-xs font-medium ${badgeClass(d.type)}`}>
+                  Uploaded {fmtDate(d.createdAt)}
+                </span>
                 {d.expiryDate && (
-                  <p className={`mt-1 text-xs font-medium ${expiryClass}`}>
-                    Expires {formatDeadline(d.expiryDate)} ({formatDate(d.expiryDate)})
-                  </p>
+                  <div className={`mt-3 rounded-lg px-3 py-2 text-xs font-medium ${expiryBoxClass}`}>
+                    {expiryDays !== null && expiryDays <= 0 ? 'Expired' : `Expires ${formatDeadline(d.expiryDate)}`} ({formatDate(d.expiryDate)})
+                  </div>
                 )}
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="ghost" className="text-xs" onClick={() => download(d.id)}>Download</Button>

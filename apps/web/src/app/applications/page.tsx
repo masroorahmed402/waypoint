@@ -33,13 +33,13 @@ const STAGE_LABEL: Record<string, string> = {
   SAVED: 'Saved', APPLIED: 'Applied', OA: 'Online assessment', INTERVIEW: 'Interview', OFFER: 'Offer', REJECTED: 'Rejected',
 };
 
-const STAGE_COLOR: Record<string, { border: string; pill: string }> = {
-  SAVED: { border: 'border-t-slate-400', pill: 'bg-slate-100 text-slate-600' },
-  APPLIED: { border: 'border-t-blue-500', pill: 'bg-blue-100 text-blue-700' },
-  OA: { border: 'border-t-yellow-500', pill: 'bg-yellow-100 text-yellow-700' },
-  INTERVIEW: { border: 'border-t-purple-500', pill: 'bg-purple-100 text-purple-700' },
-  OFFER: { border: 'border-t-green-500', pill: 'bg-green-100 text-green-700' },
-  REJECTED: { border: 'border-t-red-500', pill: 'bg-red-100 text-red-700' },
+const STAGE_COLOR: Record<string, { bar: string; pill: string }> = {
+  SAVED: { bar: 'bg-slate-400', pill: 'bg-slate-100 text-slate-600' },
+  APPLIED: { bar: 'bg-blue-500', pill: 'bg-blue-100 text-blue-700' },
+  OA: { bar: 'bg-yellow-500', pill: 'bg-yellow-100 text-yellow-700' },
+  INTERVIEW: { bar: 'bg-purple-500', pill: 'bg-purple-100 text-purple-700' },
+  OFFER: { bar: 'bg-emerald-500', pill: 'bg-emerald-100 text-emerald-700' },
+  REJECTED: { bar: 'bg-red-400', pill: 'bg-red-100 text-red-700' },
 };
 
 export default function ApplicationsPage() {
@@ -139,9 +139,12 @@ function Inner() {
           {/* Desktop: horizontal-scroll kanban */}
           <div className="hidden gap-4 overflow-x-auto pb-2 md:flex">
             {STAGES.map((s) => (
-              <div key={s} className={`w-[220px] shrink-0 rounded-xl border-t-4 bg-slate-50 p-3 ${STAGE_COLOR[s].border}`}>
-                <StageHeader stage={s} count={byStage(s).length} />
-                <StageColumn stage={s} items={byStage(s)} onMove={(id, stage) => move.mutate({ id, stage })} />
+              <div key={s} className="w-[220px] shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50">
+                <div className={`h-1 ${STAGE_COLOR[s].bar}`} />
+                <div className="p-3">
+                  <StageHeader stage={s} count={byStage(s).length} />
+                  <StageColumn stage={s} items={byStage(s)} onMove={(id, stage) => move.mutate({ id, stage })} />
+                </div>
               </div>
             ))}
           </div>
@@ -152,13 +155,12 @@ function Inner() {
 }
 
 function StageHeader({ stage, count }: { stage: string; count: number }) {
-  const color = STAGE_COLOR[stage];
   return (
     <div className="mb-3 flex items-center justify-between px-1 py-1">
-      <span className={`rounded px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide ${color.pill}`}>
+      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
         {STAGE_LABEL[stage]}
       </span>
-      <span className="text-xs text-slate-400">{count}</span>
+      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-400">{count}</span>
     </div>
   );
 }
@@ -179,9 +181,9 @@ function StageColumn({ stage, items, onMove }: { stage: string; items: App[]; on
         const salary = fmtSalary(a.salaryMin, a.salaryMax);
         const h1b = a.company?.sponsorsH1b;
         return (
-          <div key={a.id} className="relative rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow-md">
+          <div key={a.id} className="relative rounded-xl border border-slate-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex items-start gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink/10 text-[11px] font-bold text-ink">
                 {initials(a.companyName)}
               </span>
               <div className="min-w-0 flex-1">

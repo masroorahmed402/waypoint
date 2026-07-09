@@ -209,14 +209,20 @@ function DashboardInner() {
   return (
     <div className="space-y-6">
       {/* AI advisor hero */}
-      <div className="animate-fade-up overflow-hidden rounded-2xl bg-gradient-to-br from-beacon/30 via-beacon/15 to-white p-6 shadow-sm ring-1 ring-beacon/20 sm:p-8">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-beacon-600">
+      <div className="animate-fade-up rounded-2xl bg-gradient-to-br from-ink to-ink-700 p-6 text-white shadow-lg sm:p-8">
+        <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-beacon">
           {streak > 1 && <span>🔥 {streak}-day streak</span>}
         </div>
-        <h1 className="mt-1 font-display text-2xl font-semibold text-ink sm:text-3xl">
-          Good {getGreeting()}, {me!.firstName}. Your immigration advisor is ready.
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2">
+          <span className="text-lg text-beacon">✦</span>
+          <h1 className="font-display text-2xl font-semibold sm:text-3xl">
+            Good {getGreeting()}, {me!.firstName}. Your immigration advisor is ready.
+          </h1>
+          <span className="ml-auto hidden shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-xs text-slate-300 sm:block">
+            Powered by AI
+          </span>
+        </div>
+        <p className="mt-2 text-sm text-slate-300">
           You&apos;re {Math.max(0, Math.round((Date.now() - new Date(me!.profile!.programStartDate).getTime()) / 86_400_000))} days
           into your program at {me!.profile!.university?.name ?? me!.profile!.universityName ?? 'your university'}.
           {' '}Your OPT window opens {formatDate(optWindowOpen)}.
@@ -227,7 +233,7 @@ function DashboardInner() {
             onChange={(e) => setQuestion(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && askAdvisor()}
             placeholder="Ask anything about your visa, OPT, CPT..."
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm shadow-sm outline-none focus:border-ink focus:ring-2 focus:ring-ink/10"
+            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3.5 text-sm text-white outline-none transition placeholder:text-slate-400 focus:border-beacon/50 focus:ring-2 focus:ring-beacon/20"
           />
           <button
             onClick={askAdvisor}
@@ -241,7 +247,7 @@ function DashboardInner() {
             <button
               key={q}
               onClick={() => router.push(`/advisor?q=${encodeURIComponent(q)}`)}
-              className="rounded-full border border-beacon/40 bg-white/70 px-3 py-1.5 text-xs text-ink transition hover:bg-white"
+              className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-slate-300 transition hover:bg-white/20"
             >
               {q}
             </button>
@@ -252,19 +258,19 @@ function DashboardInner() {
       {/* status cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="animate-fade-up" style={{ animationDelay: '80ms' } as React.CSSProperties}>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Days until program ends</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Days until program ends</p>
           <p className={`mt-1 font-display text-3xl font-semibold ${programEndColor}`}>
             {daysToProgramEnd > 0 ? daysToProgramEnd : 0}
           </p>
           <p className="mt-1 text-xs text-slate-500">{formatDate(programEnd)}</p>
         </Card>
         <Card className="animate-fade-up" style={{ animationDelay: '160ms' } as React.CSSProperties}>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">OPT window opens</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">OPT window opens</p>
           <p className="mt-1 font-display text-3xl font-semibold text-ink">{formatDeadline(optWindowOpen)}</p>
           <p className="mt-1 text-xs text-slate-500">{formatDate(optWindowOpen)}</p>
         </Card>
         <Card className="animate-fade-up" style={{ animationDelay: '240ms' } as React.CSSProperties}>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">CPT used</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">CPT used</p>
           <p className="mt-1 font-display text-3xl font-semibold text-ink">{cptMonthsUsed} <span className="text-base font-normal text-slate-400">/ 12 mo</span></p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
             <div
@@ -319,17 +325,17 @@ function DashboardInner() {
           )}
           {next.map((d) => {
             const n = daysUntil(d.dueDate);
-            const border = n <= 7 ? 'border-red-300 bg-red-50' : n <= 30 ? 'border-amber-300 bg-amber-50' : 'border-emerald-200 bg-emerald-50/50';
-            const textColor = n <= 7 ? 'text-red-600' : n <= 30 ? 'text-amber-600' : 'text-emerald-700';
+            const borderColor = n <= 7 ? 'border-l-red-500' : n <= 30 ? 'border-l-amber-500' : 'border-l-emerald-500';
+            const textColor = n <= 7 ? 'text-red-600' : n <= 30 ? 'text-amber-600' : 'text-emerald-600';
             return (
-              <div key={d.id} className={`flex items-center justify-between rounded-xl border px-4 py-3 ${border} ${n <= 7 ? 'animate-pulse-beacon' : ''}`}>
+              <div key={d.id} className={`flex items-center justify-between rounded-xl border-l-4 bg-white px-4 py-3 shadow-sm ${borderColor} ${n <= 7 ? 'animate-pulse-beacon' : ''}`}>
                 <div>
                   <p className="text-sm font-medium text-ink">{d.title}</p>
                   <p className={`text-xs font-semibold ${textColor}`}>{formatDeadline(d.dueDate)}</p>
                 </div>
                 <button
                   onClick={() => dismiss.mutate(d.id)}
-                  className="rounded-md px-2 py-1 text-xs text-slate-400 hover:bg-white hover:text-slate-600"
+                  className="rounded-md px-2 py-1 text-xs text-slate-400 hover:bg-slate-100 hover:text-slate-600"
                 >
                   Dismiss
                 </button>
