@@ -84,7 +84,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: p.usEntryDate,
       status: 'PAST',
       explanation: 'F-1 students may enter up to 30 days before the program start date on the I-20.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/students/prepare/getting-to-the-united-states',
+      sourceUrl: 'https://studyinthestates.dhs.gov/students/prepare',
     });
   }
 
@@ -105,7 +105,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
     status: status(ssnFrom, now),
     explanation:
       'You can apply for an SSN once you have an on-campus job offer (or CPT/OPT authorization). There is no SSN without work authorization.',
-    sourceUrl: 'https://www.ssa.gov/pubs/EN-05-10181.pdf',
+    sourceUrl: 'https://www.ssa.gov/ssnumber/',
   });
 
   // CPT: generally after one full academic year of enrollment (grad programs with
@@ -118,7 +118,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: cptFrom,
       status: 'CURRENT',
       explanation: 'Curricular Practical Training authorization is active on your record.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
+      sourceUrl: 'https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states/curricular-practical-training-cpt',
     });
     items.push({
       key: 'cpt_active',
@@ -128,7 +128,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: activeCpt.endDate,
       status: 'CURRENT',
       explanation: 'Your Curricular Practical Training authorization is active. Confirm any extension or next steps with your DSO before it expires.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
+      sourceUrl: 'https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states/curricular-practical-training-cpt',
     });
   } else {
     items.push({
@@ -138,7 +138,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       status: status(cptFrom, now),
       explanation:
         'Curricular Practical Training generally requires one full academic year of enrollment first. Some graduate programs qualify sooner, ask your DSO.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/sevis-help-hub/student-records/fm-student-employment/f-1-curricular-practical-training-cpt',
+      sourceUrl: 'https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states/curricular-practical-training-cpt',
     });
   }
 
@@ -153,7 +153,10 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       status: 'CURRENT',
       explanation:
         'You may be eligible for Pre-completion OPT if you are in your final semester or have completed all coursework. It is part-time (20 hrs/week max) while school is in session, full-time during official breaks, and counts against your 12-month total OPT limit. Talk to your DSO if you have a job offer before graduation.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/students/training-opportunities-in-the-united-states',
+      // Not on the verified-replacement list and not confident the deep "training
+      // opportunities" landing page still resolves — fall back to the known-good
+      // students hub rather than risk another 404.
+      sourceUrl: 'https://studyinthestates.dhs.gov/students',
     });
   }
 
@@ -167,7 +170,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: completedOpt.endDate,
       status: 'PAST',
       explanation: 'Your post-completion Optional Practical Training authorization has ended.',
-      sourceUrl: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students',
+      sourceUrl: 'https://www.uscis.gov/opt',
     });
   } else {
     items.push({
@@ -177,7 +180,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       status: now < optOpen ? 'UPCOMING' : now > optClose ? 'PAST' : 'CURRENT',
       explanation:
         'USCIS accepts Form I-765 for post-completion OPT from 90 days before your program end date until 60 days after, AND within 30 days of your DSO issuing the OPT recommendation I-20. File early; the window closing is unforgiving.',
-      sourceUrl: 'https://www.uscis.gov/working-in-the-united-states/students-and-exchange-visitors/optional-practical-training-opt-for-f-1-students',
+      sourceUrl: 'https://www.uscis.gov/opt',
     });
   }
 
@@ -197,7 +200,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
     status: status(graceEnd, now),
     explanation:
       'After program completion (without OPT), you have 60 days to depart the U.S., transfer, or change status.',
-    sourceUrl: 'https://studyinthestates.dhs.gov/2014/08/understanding-your-grace-period',
+    sourceUrl: 'https://studyinthestates.dhs.gov/students/maintaining-your-status/grace-period',
   });
 
   if (p.stemEligible) {
@@ -213,7 +216,10 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       status: now < stemWindowStart ? 'UPCOMING' : now > optTypicalEnd ? 'PAST' : 'CURRENT',
       explanation:
         'You may file the STEM OPT extension (Form I-765) up to 90 days before your initial OPT authorization expires, and must file before it expires. Your DSO must recommend it in SEVIS first.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
+      // "opt-hub/stem-opt-hub" isn't on the verified-replacement list — the
+      // USCIS OPT page covers the STEM extension (same Form I-765 program)
+      // and is verified, so it's used for all three STEM OPT milestones below.
+      sourceUrl: 'https://www.uscis.gov/opt',
     });
     items.push({
       key: 'stem_opt_report_12mo',
@@ -222,7 +228,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       status: status(stemReport12mo, now),
       explanation:
         'STEM OPT requires a validation report at the 12-month mark of the extension confirming your employment is still on track, submitted through your DSO.',
-      sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
+      sourceUrl: 'https://www.uscis.gov/opt',
     });
     items.push({
       key: 'stem_opt_extension_end',
@@ -230,7 +236,7 @@ export function computeTimeline(p: ProfileDates, now = new Date()): Milestone[] 
       date: stemExtensionEnd,
       status: status(stemExtensionEnd, now),
       explanation: `If approved, your STEM OPT extension runs for ${STEM_EXTENSION_MONTHS} months after your initial OPT period ends.`,
-      sourceUrl: 'https://studyinthestates.dhs.gov/opt-hub/stem-opt-hub',
+      sourceUrl: 'https://www.uscis.gov/opt',
     });
   }
 
@@ -313,7 +319,7 @@ export function computeSystemDeadlines(p: ProfileDates, now = new Date()): Gener
       title: 'Verify your I-94 record',
       dueDate: addDays(p.usEntryDate, 14),
       notes:
-        'Check that your I-94 arrival record matches your I-20 at cbp.dhs.gov/i94. Common errors include wrong admission class or date. Report discrepancies to your DSO immediately.',
+        'Check that your I-94 arrival record matches your I-20 at i94.cbp.dhs.gov. Common errors include wrong admission class or date. Report discrepancies to your DSO immediately.',
     });
   }
 
