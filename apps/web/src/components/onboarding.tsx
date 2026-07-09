@@ -49,7 +49,11 @@ export default function Onboarding() {
     programStartDate: '', programEndDate: '', usEntryDate: '',
   });
   const [personal, setPersonal] = useState({
-    firstName: me?.firstName ?? '', lastName: me?.lastName ?? '',
+    // Registration no longer collects a name, so a fresh account's firstName is the
+    // 'Student' placeholder set at signup (see auth.service.ts) — treat that as unset
+    // rather than showing it as if the user had typed it.
+    firstName: me?.firstName && me.firstName !== 'Student' ? me.firstName : '',
+    lastName: me?.lastName ?? '',
   });
   const [prefilled, setPrefilled] = useState<Set<string>>(new Set());
   const [i20Notice, setI20Notice] = useState('');
@@ -294,11 +298,11 @@ export default function Onboarding() {
           <div className="space-y-3">
             <div>
               <Label>First name</Label>
-              <Input value={personal.firstName} onChange={(e: any) => setPersonal({ ...personal, firstName: e.target.value })} placeholder="e.g. Priya" />
+              <Input value={personal.firstName} onChange={(e: any) => setPersonal({ ...personal, firstName: e.target.value })} placeholder="e.g. Mohammed" />
             </div>
             <div>
               <Label>Last name</Label>
-              <Input value={personal.lastName} onChange={(e: any) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="e.g. Sharma" />
+              <Input value={personal.lastName} onChange={(e: any) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="e.g. Ahmed" />
             </div>
             <div>
               <Label>Latest U.S. arrival date (optional)</Label>

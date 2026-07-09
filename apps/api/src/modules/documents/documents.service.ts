@@ -169,11 +169,16 @@ export class DocumentsService {
       }
 
       // The I-20 is the authoritative source for the student's legal name — registration
-      // no longer asks for it, so fill it in here the first time we have both parts.
-      if (result.givenName && result.surname) {
+      // no longer asks for it. Update each part independently: requiring both previously
+      // meant a student whose surname failed to extract never got their firstName filled
+      // in either, leaving the registration-time 'Student' placeholder in place.
+      if (result.givenName || result.surname) {
         await this.prisma.user.update({
           where: { id: userId },
-          data: { firstName: result.givenName, lastName: result.surname },
+          data: {
+            ...(result.givenName ? { firstName: result.givenName.trim() } : {}),
+            ...(result.surname ? { lastName: result.surname.trim() } : {}),
+          },
         });
       }
 

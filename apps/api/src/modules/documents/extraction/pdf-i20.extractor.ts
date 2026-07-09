@@ -47,7 +47,14 @@ export class PdfI20Extractor implements DocumentExtractor {
     if (!sevisId) sevisId = this.matchSevisId(flat);
     if (sevisId) found.push('sevisId');
 
-    const surname = this.labelValue(flat, ['SURNAME/PRIMARY NAME', 'Surname/Primary Name', 'Surname', 'Family Name']);
+    // Spaced-slash variant ("SURNAME / PRIMARY NAME") matters here: without it, real I-20s
+    // using that spacing fall through to the bare 'Surname' label, whose regex then matches
+    // the header itself and captures "/ PRIMARY NAME" as the value instead of the real name.
+    const surname = this.labelValue(flat, [
+      'SURNAME/PRIMARY NAME', 'Surname/Primary Name',
+      'SURNAME / PRIMARY NAME', 'Surname / Primary Name',
+      'Surname', 'Family Name',
+    ]);
     if (surname) found.push('surname');
     const givenName = this.labelValue(flat, ['GIVEN NAME', 'Given Name', 'First Name']);
     if (givenName) found.push('givenName');
