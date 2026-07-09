@@ -55,50 +55,60 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <div className="flex items-center gap-6">
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 backdrop-blur-sm">
+        <div className="relative mx-auto flex h-16 max-w-7xl items-center px-4 sm:px-6">
+          {/* LEFT — wordmark, always left-aligned */}
+          <div className="flex-shrink-0">
             <Link href="/dashboard" className="font-display text-xl font-semibold text-ink">
               Waypoint <span className="text-beacon">AI</span>
             </Link>
-            <nav className="hidden items-center gap-1 md:flex">
-              {NAV.map((n) =>
-                n.href === '/advisor' ? (
-                  // Advisor gets special treatment — larger, beacon background, stands out
-                  <Link
-                    key={n.href}
-                    href="/advisor"
-                    className={clsx(
-                      'flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold shadow-sm transition-all',
-                      pathname === '/advisor'
-                        ? 'scale-105 bg-beacon text-ink shadow-md shadow-beacon/30'
-                        : 'bg-beacon text-ink hover:scale-105 hover:bg-beacon-600 hover:shadow-md hover:shadow-beacon/20',
-                    )}
-                  >
-                    <span className="text-base">✦</span>
-                    <span>{n.label}</span>
-                  </Link>
-                ) : (
-                  // Regular nav link
-                  <Link
-                    key={n.href}
-                    href={n.href}
-                    className={clsx(
-                      'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                      pathname === n.href ? 'bg-slate-100 font-semibold text-ink' : 'text-slate-600 hover:bg-slate-50 hover:text-ink',
-                    )}
-                  >
-                    {n.label}
-                  </Link>
-                ),
-              )}
-            </nav>
           </div>
-          <div className="flex items-center gap-1">
+
+          {/* CENTER — nav links, absolutely centered in the header */}
+          <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 md:flex">
+            {NAV.map((n) =>
+              n.href === '/advisor' ? (
+                // Advisor — center jewel, always beacon amber
+                <Link
+                  key={n.href}
+                  href="/advisor"
+                  className={clsx(
+                    'mx-1 flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold transition-all',
+                    pathname === '/advisor'
+                      ? 'scale-105 bg-beacon text-ink shadow-md shadow-beacon/25'
+                      : 'bg-beacon text-ink hover:scale-[1.02] hover:bg-beacon-600 hover:shadow-md hover:shadow-beacon/20',
+                  )}
+                >
+                  <span>✦</span>
+                  <span>{n.label}</span>
+                </Link>
+              ) : (
+                // Regular nav link
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  className={clsx(
+                    'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                    pathname === n.href ? 'bg-slate-100 text-ink' : 'text-slate-500 hover:bg-slate-50 hover:text-ink',
+                  )}
+                >
+                  {n.label}
+                </Link>
+              ),
+            )}
+          </nav>
+
+          {/* RIGHT — user info, always right-aligned */}
+          <div className="ml-auto flex flex-shrink-0 items-center gap-1">
             <NotificationBell />
             <div className="hidden items-center gap-3 md:flex">
-              <span className="ml-2 text-sm text-slate-500">{me.firstName}</span>
-              <button onClick={logout} className="text-sm text-slate-500 transition-colors hover:text-ink">Log out</button>
+              <div className="h-5 w-px bg-slate-200" />
+              <span className="whitespace-nowrap text-sm font-medium text-slate-700">
+                {me.firstName} {me.lastName || ''}
+              </span>
+              <button onClick={logout} className="whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-ink">
+                Log out
+              </button>
             </div>
             <button
               onClick={() => setMenuOpen((v) => !v)}
