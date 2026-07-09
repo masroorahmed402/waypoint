@@ -186,7 +186,7 @@ function Inner() {
       });
       if (!res) { setDraftError('AI advisor is not configured yet.'); return; }
       setDraftResult(res);
-      markDsoEmailDrafted();
+      if (me?.id) markDsoEmailDrafted(me.id);
     } catch (e: any) {
       setDraftError(e.message ?? 'Could not generate a draft.');
     } finally {

@@ -99,7 +99,7 @@ function DashboardInner() {
   const [question, setQuestion] = useState('');
   const [streak, setStreak] = useState(0);
 
-  useEffect(() => { setStreak(recordCheckIn()); }, []);
+  useEffect(() => { if (me?.id) setStreak(recordCheckIn(me.id)); }, [me?.id]);
 
   const deadlines = useQuery({
     queryKey: ['deadlines', 'upcoming'],
@@ -185,8 +185,8 @@ function DashboardInner() {
     { label: 'SEVIS ID stored', points: 10, earned: !!(me!.profile as any)?.sevisIdEncrypted, href: '/documents' },
     { label: 'DSO contact saved', points: 10, earned: !!dso.data, href: '/immigration' },
     { label: 'Latest U.S. arrival date set', points: 5, earned: !!me!.profile!.usEntryDate, href: '/settings' },
-    { label: 'Asked the AI advisor a question', points: 5, earned: hasUsedAdvisor(), href: '/advisor' },
-    { label: 'DSO email drafted', points: 5, earned: hasDraftedDsoEmail(), href: '/immigration' },
+    { label: 'Asked the AI advisor a question', points: 5, earned: hasUsedAdvisor(me!.id), href: '/advisor' },
+    { label: 'DSO email drafted', points: 5, earned: hasDraftedDsoEmail(me!.id), href: '/immigration' },
   ];
 
   const recommendations = [

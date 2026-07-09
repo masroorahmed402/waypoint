@@ -1,22 +1,30 @@
 // Lightweight local engagement flags for profile-strength scoring — these
 // track one-time product actions that have no natural server-side record.
+// Every key is scoped by userId: unscoped keys leak between accounts that
+// share a browser (a new user would inherit the previous user's badges and
+// streak). See advisor/page.tsx for the same class of bug with conversation
+// history — these are lower severity (no sensitive content) but the same fix.
 const ADVISOR_USED_KEY = 'waypoint_advisor_used';
 const DSO_EMAIL_DRAFTED_KEY = 'waypoint_dso_email_drafted';
+const STREAK_KEY = 'waypoint_checkin_streak';
+const LAST_CHECKIN_KEY = 'waypoint_last_checkin';
 
-export function markAdvisorUsed() {
-  if (typeof window !== 'undefined') window.localStorage.setItem(ADVISOR_USED_KEY, '1');
+const scoped = (key: string, userId: string) => `${key}:${userId}`;
+
+export function markAdvisorUsed(userId: string) {
+  if (typeof window !== 'undefined') window.localStorage.setItem(scoped(ADVISOR_USED_KEY, userId), '1');
 }
 
-export function hasUsedAdvisor(): boolean {
-  return typeof window !== 'undefined' && window.localStorage.getItem(ADVISOR_USED_KEY) === '1';
+export function hasUsedAdvisor(userId: string): boolean {
+  return typeof window !== 'undefined' && window.localStorage.getItem(scoped(ADVISOR_USED_KEY, userId)) === '1';
 }
 
-export function markDsoEmailDrafted() {
-  if (typeof window !== 'undefined') window.localStorage.setItem(DSO_EMAIL_DRAFTED_KEY, '1');
+export function markDsoEmailDrafted(userId: string) {
+  if (typeof window !== 'undefined') window.localStorage.setItem(scoped(DSO_EMAIL_DRAFTED_KEY, userId), '1');
 }
 
-export function hasDraftedDsoEmail(): boolean {
-  return typeof window !== 'undefined' && window.localStorage.getItem(DSO_EMAIL_DRAFTED_KEY) === '1';
+export function hasDraftedDsoEmail(userId: string): boolean {
+  return typeof window !== 'undefined' && window.localStorage.getItem(scoped(DSO_EMAIL_DRAFTED_KEY, userId)) === '1';
 }
 
 export function getGreeting(): 'morning' | 'afternoon' | 'evening' {
@@ -26,21 +34,26 @@ export function getGreeting(): 'morning' | 'afternoon' | 'evening' {
   return 'evening';
 }
 
-const STREAK_KEY = 'waypoint_checkin_streak';
-const LAST_CHECKIN_KEY = 'waypoint_last_checkin';
-
 /** Records today's visit and returns the current consecutive-day streak. */
-export function recordCheckIn(): number {
+export function recordCheckIn(userId: string): number {
   if (typeof window === 'undefined') return 0;
   const today = new Date().toDateString();
-  const last = window.localStorage.getItem(LAST_CHECKIN_KEY);
-  if (last === today) return Number(window.localStorage.getItem(STREAK_KEY) ?? '1');
+  const last = window.localStorage.getItem(scoped(LAST_CHECKIN_KEY, userId));
+  if (last === today) return Number(window.localStorage.getItem(scoped(STREAK_KEY, userId)) ?? '1');
 
   const yesterday = new Date(Date.now() - 86_400_000).toDateString();
-  const prevStreak = Number(window.localStorage.getItem(STREAK_KEY) ?? '0');
+  const prevStreak = Number(window.localStorage.getItem(scoped(STREAK_KEY, userId)) ?? '0');
   const nextStreak = last === yesterday ? prevStreak + 1 : 1;
 
-  window.localStorage.setItem(STREAK_KEY, String(nextStreak));
-  window.localStorage.setItem(LAST_CHECKIN_KEY, today);
+  window.localStorage.setItem(scoped(STREAK_KEY, userId), String(nextStreak));
+  window.localStorage.setItem(scoped(LAST_CHECKIN_KEY, userId), today);
   return nextStreak;
 }
+
+/** Legacy unscoped keys from before engagement flags were per-user — purge on logout. */
+export const LEGACY_UNSCOPED_ENGAGEMENT_KEYS = [
+  ADVISOR_USED_KEY,
+  DSO_EMAIL_DRAFTED_KEY,
+  STREAK_KEY,
+  LAST_CHECKIN_KEY,
+];

@@ -4,6 +4,19 @@ import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, setAccessToken } from './api';
 import { identify } from './posthog';
+import { LEGACY_UNSCOPED_ENGAGEMENT_KEYS } from './engagement';
+
+// Legacy unscoped localStorage keys from before these were scoped per-user
+// (see advisor/page.tsx, documents/page.tsx, notification-bell.tsx for the
+// same bug in each). Each page also purges its own key on mount, so this is
+// defense in depth for a user who never revisits one of those pages before
+// a different account logs in on the same browser.
+const LEGACY_UNSCOPED_KEYS = [
+  'waypoint_advisor_conversations',
+  'waypoint_primary_i20',
+  'waypoint_read_deadline_ids',
+  ...LEGACY_UNSCOPED_ENGAGEMENT_KEYS,
+];
 
 export interface Me {
   id: string;
@@ -94,6 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear all cached queries so a different user logging in on the same
     // browser session never sees the previous user's cached data.
     qc.clear();
+    LEGACY_UNSCOPED_KEYS.forEach((k) => localStorage.removeItem(k));
     router.push('/login');
   }, [qc, router]);
 

@@ -39,15 +39,21 @@ const FOLLOW_UPS: { match: RegExp; questions: string[] }[] = [
   { match: /dso|email/i, questions: ['What else should I ask my DSO?', 'How long does a DSO response usually take?'] },
 ];
 
-const CONVERSATIONS_KEY = 'waypoint_advisor_conversations';
+// Unscoped legacy key from before conversations were scoped per-user — every
+// account on the same browser read and wrote this same key, so a new user
+// signing in on a shared/reused browser saw the previous user's full AI
+// conversation history. Kept only so it can be purged below.
+const LEGACY_UNSCOPED_CONVERSATIONS_KEY = 'waypoint_advisor_conversations';
+const conversationsKey = (userId: string) => `waypoint_advisor_conversations:${userId}`;
 
-function loadConversations(): Conversation[] {
+function loadConversations(userId: string): Conversation[] {
   if (typeof window === 'undefined') return [];
-  try { return JSON.parse(window.localStorage.getItem(CONVERSATIONS_KEY) ?? '[]'); } catch { return []; }
+  try { return JSON.parse(window.localStorage.getItem(conversationsKey(userId)) ?? '[]'); } catch { return []; }
 }
 
-function saveConversations(convos: Conversation[]) {
-  window.localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(convos));
+function saveConversations(userId: string, convos: Conversation[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(conversationsKey(userId), JSON.stringify(convos));
 }
 
 export default function AdvisorPage() {
@@ -65,8 +71,18 @@ function AdvisorInner() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setConversations(loadConversations());
-  }, []);
+    // Purge the old unscoped key so any conversation history left over from
+    // before this fix can't leak to whichever account loads this page next.
+    if (typeof window !== 'undefined') window.localStorage.removeItem(LEGACY_UNSCOPED_CONVERSATIONS_KEY);
+    if (!me?.id) return;
+    setConversations(loadConversations(me.id));
+    // A different user signing in without a full page reload (e.g. via SPA
+    // navigation after logout) must not keep the previous user's messages
+    // in memory — reset the active thread whenever the logged-in user changes.
+    setMessages([]);
+    setActiveId(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -79,7 +95,7 @@ function AdvisorInner() {
   }, []);
 
   function persist(nextMessages: Message[]) {
-    if (nextMessages.length === 0) return;
+    if (nextMessages.length === 0 || !me?.id) return;
     const id = activeId ?? crypto.randomUUID();
     if (!activeId) setActiveId(id);
     const title = nextMessages[0].content.slice(0, 48);
@@ -87,7 +103,7 @@ function AdvisorInner() {
     next.unshift({ id, title, messages: nextMessages, updatedAt: Date.now() });
     const trimmed = next.slice(0, 20);
     setConversations(trimmed);
-    saveConversations(trimmed);
+    saveConversations(me.id, trimmed);
   }
 
   async function send(question: string) {
@@ -107,7 +123,7 @@ function AdvisorInner() {
       const withAnswer = [...withUser, { role: 'assistant' as const, content: res.answer }];
       setMessages(withAnswer);
       persist(withAnswer);
-      markAdvisorUsed();
+      if (me?.id) markAdvisorUsed(me.id);
     } catch {
       const withError = [...withUser, { role: 'assistant' as const, content: 'Sorry, something went wrong. Please try again.' }];
       setMessages(withError);

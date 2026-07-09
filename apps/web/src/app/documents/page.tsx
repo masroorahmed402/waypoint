@@ -77,7 +77,9 @@ const badgeClass = (type: string) => TYPE_BADGE[type] ?? 'bg-slate-100 text-slat
 const ALLOWED_EXT_ACCEPT = 'application/pdf,image/jpeg,image/png,image/webp';
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const QUOTA_BYTES = 500 * 1024 * 1024;
-const PRIMARY_I20_KEY = 'waypoint_primary_i20';
+// Unscoped legacy key — see advisor/page.tsx for the same issue with conversation history.
+const LEGACY_UNSCOPED_PRIMARY_I20_KEY = 'waypoint_primary_i20';
+const primaryI20Key = (userId: string) => `waypoint_primary_i20:${userId}`;
 
 const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 const fmtSize = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -127,8 +129,9 @@ function Inner() {
   const [primaryI20, setPrimaryI20] = useState<string | null>(null);
 
   useEffect(() => {
-    setPrimaryI20(window.localStorage.getItem(PRIMARY_I20_KEY));
-  }, []);
+    window.localStorage.removeItem(LEGACY_UNSCOPED_PRIMARY_I20_KEY);
+    setPrimaryI20(me?.id ? window.localStorage.getItem(primaryI20Key(me.id)) : null);
+  }, [me?.id]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['documents'],
@@ -234,7 +237,8 @@ function Inner() {
   }
 
   function setPrimary(id: string) {
-    window.localStorage.setItem(PRIMARY_I20_KEY, id);
+    if (!me?.id) return;
+    window.localStorage.setItem(primaryI20Key(me.id), id);
     setPrimaryI20(id);
   }
 

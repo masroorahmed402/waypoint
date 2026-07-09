@@ -4,22 +4,26 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { formatDeadline } from '@/lib/format-date';
+import { useAuth } from '@/lib/auth-context';
 
 interface Deadline { id: string; title: string; dueDate: string; type: string; source: string }
 
-const READ_KEY = 'waypoint_read_deadline_ids';
+// Unscoped legacy key — see advisor/page.tsx for the same issue with conversation history.
+const LEGACY_UNSCOPED_READ_KEY = 'waypoint_read_deadline_ids';
+const readIdsKey = (userId: string) => `waypoint_read_deadline_ids:${userId}`;
 const daysUntil = (iso: string) => Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 
-function loadReadIds(): Set<string> {
+function loadReadIds(userId: string): Set<string> {
   if (typeof window === 'undefined') return new Set();
   try {
-    return new Set(JSON.parse(window.localStorage.getItem(READ_KEY) ?? '[]'));
+    return new Set(JSON.parse(window.localStorage.getItem(readIdsKey(userId)) ?? '[]'));
   } catch {
     return new Set();
   }
 }
 
 export default function NotificationBell() {
+  const { me } = useAuth();
   const [open, setOpen] = useState(false);
   const [readIds, setReadIds] = useState<Set<string>>(new Set());
   const ref = useRef<HTMLDivElement>(null);
@@ -29,7 +33,10 @@ export default function NotificationBell() {
     queryFn: () => api<Deadline[]>('/immigration/deadlines?status=upcoming'),
   });
 
-  useEffect(() => { setReadIds(loadReadIds()); }, []);
+  useEffect(() => {
+    window.localStorage.removeItem(LEGACY_UNSCOPED_READ_KEY);
+    setReadIds(me?.id ? loadReadIds(me.id) : new Set());
+  }, [me?.id]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -43,10 +50,11 @@ export default function NotificationBell() {
   const unreadCount = upcoming.filter((d) => !readIds.has(d.id)).length;
 
   function markAllRead() {
+    if (!me?.id) return;
     const next = new Set(readIds);
     upcoming.forEach((d) => next.add(d.id));
     setReadIds(next);
-    window.localStorage.setItem(READ_KEY, JSON.stringify(Array.from(next)));
+    window.localStorage.setItem(readIdsKey(me.id), JSON.stringify(Array.from(next)));
   }
 
   return (
