@@ -1,180 +1,307 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { APP_NAME } from '@/lib/brand';
 import { joinWaitlist } from '@/lib/waitlist';
 import { track } from '@/lib/posthog';
 import RevealOnScroll from '@/components/reveal-on-scroll';
 
+const PAIN_POINTS = [
+  {
+    icon: '⏰',
+    body: 'OPT filing window is 150 days. Miss it by one day and you lose the right to work in your field.',
+  },
+  {
+    icon: '✈️',
+    body: 'Your I-20 travel signature expires every 12 months. Border agents turn students away every year.',
+  },
+  {
+    icon: '📋',
+    body: '12 months of full-time CPT wipes out your OPT eligibility entirely. Most students don’t track it.',
+  },
+];
+
+const HOW_IT_WORKS = [
+  {
+    label: 'Step 1 of 3',
+    heading: 'Upload your I-20 — we read it so you don’t have to',
+    body: 'Drop in your PDF. Waypoint AI extracts your program dates, SEVIS ID, DSO contact, STEM eligibility, and CPT/OPT history automatically. Your document is encrypted immediately — AES-256, private to your account only.',
+    note: '🔒 Encrypted on upload · Never shared · Delete anytime',
+  },
+  {
+    label: 'Step 2 of 3',
+    heading: 'Your entire F-1 journey, mapped to your exact dates',
+    body: 'Not generic USCIS text. Your actual OPT window based on your program end date. Your actual CPT eligibility based on your enrollment start. Every milestone explained in plain English with the official USCIS source.',
+    note: 'Informational only — always confirm important dates with your DSO',
+  },
+  {
+    label: 'Step 3 of 3',
+    heading: 'Email reminders and an AI advisor that knows your situation',
+    body: 'Automatic reminders at 90, 30, 7, and 1 day before every deadline. An AI advisor that answers based on YOUR program dates, not generic FAQ text. Draft DSO emails. Track your USCIS case. Everything in one place.',
+    note: null,
+  },
+];
+
 const FEATURES = [
-  { icon: '🤖', title: 'AI Advisor', body: 'Ask anything. Get answers based on YOUR program dates, CPT history, and visa type.' },
-  { icon: '📄', title: 'I-20 Intelligence', body: 'Upload your I-20 PDF. We extract your dates, detect STEM eligibility, and find your DSO automatically.' },
-  { icon: '⏰', title: 'Deadline Guardian', body: 'Email alerts at 90, 30, 7, and 1 day before every immigration deadline. Never miss OPT again.' },
-  { icon: '📁', title: 'Document Vault', body: 'Store your I-20, passport, and visa securely. Get expiry reminders before they lapse.' },
-  { icon: '💼', title: 'Job Tracker', body: 'Track applications with H-1B sponsorship data. Know which companies sponsor before you apply.' },
-  { icon: '🎓', title: 'STEM Detection', body: 'We automatically detect if your degree qualifies for 24-month STEM OPT extension.' },
-  { icon: '🏥', title: 'Arrival Checklist', body: 'From SSN to driver’s license, a step-by-step guide for every new student.' },
-  { icon: '📧', title: 'DSO Email Drafter', body: 'AI writes professional emails to your DSO pre-filled with your SEVIS ID and program dates.' },
-  { icon: '📊', title: 'USCIS Case Tracker', body: 'Add your receipt number. Get notified the moment your OPT/EAD status changes.' },
-  { icon: '🗓️', title: 'Calendar Export', body: 'Export all your deadlines to Google Calendar with one click.' },
+  { icon: '📄', title: 'I-20 Intelligence', body: 'Extracts program dates, SEVIS ID, DSO contact, STEM eligibility, and CPT/OPT authorization automatically from your PDF.' },
+  { icon: '⏰', title: 'Deadline Guardian', body: 'Reminders at 90, 30, 7, and 1 day before OPT filing deadline, visa expiry, I-20 expiry, travel signatures, and more.' },
+  { icon: '🤖', title: 'AI Advisor', body: 'Ask anything. Answers based on your actual program dates and CPT history — not generic FAQ text. Powered by Llama 3.3.' },
+  { icon: '📁', title: 'Document Vault', body: 'Store your I-20, passport, visa stamp, EAD, and insurance securely. Expiry alerts auto-generate from uploaded documents.' },
+  { icon: '💼', title: 'Job Tracker with H-1B Data', body: 'Track applications with real H-1B sponsorship history from public DOL data. Know before you apply.' },
+  { icon: '🎓', title: 'STEM OPT Detection', body: 'Auto-detects STEM-designated CIP codes from your I-20. Tracks your 24-month extension eligibility.' },
+  { icon: '📊', title: 'USCIS Case Tracker', body: 'Add your receipt number. Get notified the moment your OPT or EAD status changes — no more manual checking.' },
+  { icon: '🏥', title: 'Arrival Checklist', body: 'SSN application, driver’s license, bank account, health insurance — a step-by-step guide for every new student.' },
+  { icon: '📧', title: 'DSO Email Drafter', body: 'AI writes professional emails to your DSO pre-filled with your SEVIS ID, program dates, and situation.' },
 ];
 
-const DEMO_TIMELINE = [
-  { label: 'Program start', date: 'Sep 2023', status: 'done' },
-  { label: 'CPT authorized', date: 'Jun 2025', status: 'done' },
-  { label: 'OPT window opens', date: 'Mar 2027', status: 'current' },
-  { label: 'Program ends', date: 'Jun 2027', status: 'upcoming' },
-  { label: 'OPT filing deadline', date: 'Aug 2027', status: 'upcoming' },
+const TRUST_COLUMNS = [
+  {
+    icon: '🔐',
+    title: 'AES-256-GCM Encryption',
+    body: 'Every document, SEVIS ID, and passport number is encrypted the moment it leaves your browser. The same standard used by banks and healthcare systems. Even we cannot read your raw SEVIS ID.',
+  },
+  {
+    icon: '🚫',
+    title: 'Zero Data Sharing',
+    body: 'Your documents are never used for advertising, never sold, never shared with third parties. The only external service that receives any text about you is our AI provider — and only your profile summary, never your documents.',
+  },
+  {
+    icon: '🗑️',
+    title: 'You Own Everything',
+    body: 'Delete any document instantly. Delete your account and everything disappears from our servers within 24 hours — files from storage, data from the database, all of it.',
+  },
 ];
 
-const DEMO_DEADLINES = [
-  { title: 'Submit OPT application (I-765)', when: 'in 62 days', urgency: 'amber' },
-  { title: 'Travel signature renewal', when: 'in 14 days', urgency: 'red' },
-  { title: 'STEM OPT reporting check-in', when: 'in 5 months', urgency: 'green' },
+const STATS = [
+  { stat: '150 days', label: 'OPT filing window we track for you' },
+  { stat: '90 days', label: 'Earliest warning before your deadline' },
+  { stat: '24 months', label: 'STEM OPT extension we detect automatically' },
+  { stat: '$0', label: 'Cost to start' },
 ];
 
-const ADVISOR_QUESTIONS = [
-  'Am I eligible for OPT?',
-  'How much CPT have I used?',
-  'What happens during the 60-day grace period?',
-  'Draft an email to my DSO about OPT',
-  'Can I travel internationally right now?',
-  'When does my I-20 travel signature expire?',
+const ADVISOR_MESSAGES = [
+  { role: 'user' as const, text: 'Am I eligible for OPT?' },
+  {
+    role: 'ai' as const,
+    text: 'Yes. Your program ends June 11, 2027 — your OPT filing window opens March 13, 2027 (90 days before). You’ve used 3 months of full-time CPT at Fynite AI, so your 12-month OPT is fully intact. Talk to your DSO around February 2027 to start the process.',
+  },
+  { role: 'user' as const, text: 'What if I want to start working before graduation?' },
+  {
+    role: 'ai' as const,
+    text: 'You may be eligible for Pre-completion OPT since you’re in your final year. It’s part-time only (max 20 hrs/week while enrolled) and counts against your 12-month total. Your DSO can issue the I-20 recommendation — worth discussing now.',
+  },
 ];
 
-function FloatingDots() {
-  const dots = [
-    { top: '15%', left: '8%', size: 8, delay: 0 },
-    { top: '30%', left: '85%', size: 6, delay: 1.2 },
-    { top: '65%', left: '15%', size: 10, delay: 2.4 },
-    { top: '75%', left: '70%', size: 7, delay: 0.6 },
-    { top: '45%', left: '50%', size: 5, delay: 1.8 },
-    { top: '20%', left: '45%', size: 6, delay: 3 },
-  ];
+const TIMELINE_MILESTONES = ['Arrived', 'Program Start', 'CPT Eligible', 'OPT Window Opens', 'Program End', 'Grace Period'];
+
+function HeroMockup() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <svg className="absolute inset-0 h-full w-full opacity-30">
-        <line x1="8%" y1="15%" x2="45%" y2="20%" stroke="#e6a53a" strokeWidth="1" strokeDasharray="4 4" />
-        <line x1="45%" y1="20%" x2="85%" y2="30%" stroke="#e6a53a" strokeWidth="1" strokeDasharray="4 4" />
-        <line x1="15%" y1="65%" x2="50%" y2="45%" stroke="#e6a53a" strokeWidth="1" strokeDasharray="4 4" />
-        <line x1="50%" y1="45%" x2="70%" y2="75%" stroke="#e6a53a" strokeWidth="1" strokeDasharray="4 4" />
-      </svg>
-      {dots.map((d, i) => (
+    <div className="relative mx-auto max-w-sm animate-float" style={{ animationDuration: '6s' }}>
+      <div
+        className="rounded-2xl border border-white/10 bg-ink-700 p-5"
+        style={{ boxShadow: '0 0 60px rgba(230,165,58,0.15)' }}
+      >
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">Your F-1 timeline</p>
+        <div className="mt-4 flex items-center justify-between">
+          {['Arrival', 'CPT', 'OPT', 'Grace'].map((label, i) => (
+            <div key={label} className="flex flex-1 flex-col items-center">
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${i === 2 ? 'animate-pulse-beacon bg-beacon' : 'bg-white/25'}`}
+              />
+              <span className="mt-2 text-[10px] text-white/50">{label}</span>
+            </div>
+          ))}
+          <div className="absolute left-9 right-9 top-[74px] -z-0 h-px bg-white/15" />
+        </div>
+
+        <div className="relative mt-5 rounded-xl border border-beacon/30 bg-ink px-4 py-3">
+          <p className="text-[10px] font-medium uppercase tracking-wide text-beacon">Next deadline</p>
+          <p className="mt-1 text-sm font-semibold text-paper">OPT window opens in 47 days</p>
+        </div>
+
+        <div className="mt-4 space-y-2">
+          <div className="ml-auto max-w-[85%] rounded-xl rounded-br-sm bg-white/10 px-3 py-2 text-xs text-paper">
+            Am I eligible for OPT?
+          </div>
+          <div className="max-w-[90%] rounded-xl rounded-bl-sm border border-beacon/20 bg-beacon/10 px-3 py-2 text-xs text-paper">
+            Yes — your window opens March 13, 2027
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UploadIllustration() {
+  const chips = ['SEVIS ID', 'Program dates', 'School name', 'STEM badge'];
+  return (
+    <div className="relative flex h-72 items-center justify-center">
+      <div className="relative flex h-40 w-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-beacon/50 bg-beacon/5">
+        <div className="rounded-md bg-ink px-3 py-4 text-center shadow-sm">
+          <p className="text-[10px] font-semibold text-paper">Form I-20</p>
+          <div className="mx-auto mt-2 h-1 w-10 rounded bg-white/20" />
+          <div className="mx-auto mt-1.5 h-1 w-8 rounded bg-white/20" />
+        </div>
+        <p className="mt-2 text-[10px] font-medium text-beacon-600">drop to upload</p>
+      </div>
+      {chips.map((chip, i) => (
         <span
-          key={i}
-          className="absolute animate-float rounded-full bg-beacon/60"
-          style={{ top: d.top, left: d.left, width: d.size, height: d.size, animationDelay: `${d.delay}s` }}
-        />
+          key={chip}
+          className="animate-fade-up absolute rounded-full border border-beacon/30 bg-white px-2.5 py-1 text-[10px] font-medium text-ink shadow-sm"
+          style={{
+            top: `${18 + i * 16}%`,
+            left: i % 2 === 0 ? '68%' : '4%',
+            animationDelay: `${0.3 + i * 0.25}s`,
+          }}
+        >
+          {chip}
+        </span>
       ))}
     </div>
   );
 }
 
-function Typewriter({ words }: { words: string[] }) {
-  const [wordIdx, setWordIdx] = useState(0);
-  const [text, setText] = useState('');
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    const current = words[wordIdx];
-    const speed = deleting ? 25 : 45;
-    const timeout = setTimeout(() => {
-      if (!deleting) {
-        if (text.length < current.length) {
-          setText(current.slice(0, text.length + 1));
-        } else {
-          setTimeout(() => setDeleting(true), 1400);
-        }
-      } else if (text.length > 0) {
-        setText(current.slice(0, text.length - 1));
-      } else {
-        setDeleting(false);
-        setWordIdx((i) => (i + 1) % words.length);
-      }
-    }, speed);
-    return () => clearTimeout(timeout);
-  }, [text, deleting, wordIdx, words]);
-
+function TimelineIllustration() {
   return (
-    <span>
-      {text}
-      <span className="ml-0.5 inline-block w-[2px] animate-pulse bg-ink align-middle" style={{ height: '1em' }} />
-    </span>
+    <div className="flex h-72 flex-col justify-center gap-4 px-4">
+      {TIMELINE_MILESTONES.map((label, i) => (
+        <div
+          key={label}
+          className="animate-fade-up flex items-center gap-3"
+          style={{ animationDelay: `${i * 0.35}s` }}
+        >
+          <span
+            className={`h-3 w-3 shrink-0 rounded-full ${
+              i === 3 ? 'animate-pulse-beacon bg-beacon' : 'border-2 border-slate-300 bg-white'
+            }`}
+          />
+          <span className={`text-sm ${i === 3 ? 'font-semibold text-ink' : 'text-slate-500'}`}>{label}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
-function DemoTabs() {
-  const [tab, setTab] = useState<'timeline' | 'advisor' | 'deadlines'>('timeline');
-  const tabs = [
-    { key: 'timeline' as const, label: 'Your timeline' },
-    { key: 'advisor' as const, label: 'AI Advisor' },
-    { key: 'deadlines' as const, label: 'Deadline tracker' },
-  ];
+function ReminderIllustration() {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-      <div className="flex gap-1 border-b border-slate-100 p-2">
-        {tabs.map((t) => (
+    <div className="flex h-72 flex-col justify-center gap-3 px-2">
+      <div className="animate-fade-up rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-beacon text-xs">🔔</span>
+          <div>
+            <p className="text-xs font-semibold text-ink">OPT window opens in 30 days</p>
+            <p className="text-[10px] text-slate-400">{APP_NAME}</p>
+          </div>
+        </div>
+      </div>
+      <div className="animate-fade-up ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-ink px-3 py-2 text-xs text-white" style={{ animationDelay: '0.4s' }}>
+        What do I need to bring to my DSO meeting?
+      </div>
+      <div className="animate-fade-up max-w-[90%] rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700" style={{ animationDelay: '0.8s' }}>
+        Bring your passport, current I-20, and your most recent transcript. Confirm the exact list with your DSO before the meeting.
+      </div>
+    </div>
+  );
+}
+
+function HowItWorksDemo() {
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setStep((s) => (s + 1) % HOW_IT_WORKS.length), 4000);
+    return () => clearInterval(interval);
+  }, [step]);
+
+  const current = HOW_IT_WORKS[step];
+
+  return (
+    <div>
+      <div className="mx-auto flex max-w-xl gap-2">
+        {HOW_IT_WORKS.map((_, i) => (
           <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-              tab === t.key ? 'bg-ink text-white' : 'text-slate-500 hover:bg-slate-100'
-            }`}
+            key={i}
+            type="button"
+            aria-label={`Go to step ${i + 1}`}
+            onClick={() => setStep(i)}
+            className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200"
           >
-            {t.label}
+            <span
+              key={`${i}-${step}`}
+              className="block h-full rounded-full bg-beacon"
+              style={{
+                width: i < step ? '100%' : i > step ? '0%' : undefined,
+                animation: i === step ? 'fillBar 4s linear forwards' : undefined,
+              }}
+            />
           </button>
         ))}
       </div>
-      <div key={tab} className="min-h-[280px] animate-fade-in p-5">
-        {tab === 'timeline' && (
-          <div className="space-y-4">
-            {DEMO_TIMELINE.map((m) => (
-              <div key={m.label} className="flex items-center gap-3">
-                <span
-                  className={`h-3 w-3 shrink-0 rounded-full ${
-                    m.status === 'done' ? 'bg-slate-300' : m.status === 'current' ? 'animate-pulse-beacon bg-beacon' : 'border-2 border-slate-300 bg-white'
-                  }`}
-                />
-                <span className={`flex-1 text-sm ${m.status === 'current' ? 'font-semibold text-ink' : 'text-slate-600'}`}>{m.label}</span>
-                <span className="text-xs text-slate-400">{m.date}</span>
-              </div>
-            ))}
-          </div>
-        )}
-        {tab === 'advisor' && (
-          <div className="space-y-3">
-            <div className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-ink px-4 py-2.5 text-sm text-white">
-              Am I eligible for OPT?
-            </div>
-            <div className="max-w-[85%] rounded-2xl rounded-bl-sm border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-700">
-              Yes, based on your program end date of June 2027, your OPT application window opens
-              90 days before that, in March 2027. You&apos;ll need to file within 30 days of your DSO
-              recommending you in SEVIS.
-            </div>
-          </div>
-        )}
-        {tab === 'deadlines' && (
-          <div className="space-y-2">
-            {DEMO_DEADLINES.map((d) => (
-              <div
-                key={d.title}
-                className={`flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm ${
-                  d.urgency === 'red' ? 'border-red-200 bg-red-50' : d.urgency === 'amber' ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'
-                }`}
-              >
-                <span className="text-slate-700">{d.title}</span>
-                <span
-                  className={`font-semibold ${
-                    d.urgency === 'red' ? 'text-red-600' : d.urgency === 'amber' ? 'text-amber-600' : 'text-emerald-600'
-                  }`}
-                >
-                  {d.when}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+
+      <div className="mt-10 grid items-center gap-10 sm:grid-cols-2">
+        <div key={`illustration-${step}`} className="animate-fade-in rounded-2xl border border-slate-200 bg-paper">
+          {step === 0 && <UploadIllustration />}
+          {step === 1 && <TimelineIllustration />}
+          {step === 2 && <ReminderIllustration />}
+        </div>
+        <div key={`text-${step}`} className="animate-fade-in">
+          <p className="text-xs font-semibold uppercase tracking-wide text-beacon-600">{current.label}</p>
+          <h3 className="mt-2 font-display text-2xl font-semibold text-ink">{current.heading}</h3>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">{current.body}</p>
+          {current.note && <p className="mt-4 text-xs font-medium text-slate-400">{current.note}</p>}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function AdvisorChatDemo() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount(1);
+        }
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (visibleCount === 0 || visibleCount > ADVISOR_MESSAGES.length) return;
+    const timeout = setTimeout(() => {
+      setVisibleCount((c) => (c >= ADVISOR_MESSAGES.length ? 1 : c + 1));
+    }, visibleCount >= ADVISOR_MESSAGES.length ? 3200 : 1400);
+    return () => clearTimeout(timeout);
+  }, [visibleCount]);
+
+  return (
+    <div ref={ref} className="rounded-2xl bg-ink p-6 shadow-lg">
+      <div className="flex items-center gap-2 text-xs font-medium text-white/50">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-beacon text-[10px] font-bold text-ink">W</span>
+        {APP_NAME} Advisor
+      </div>
+      <div className="mt-4 min-h-[220px] space-y-3">
+        {ADVISOR_MESSAGES.slice(0, visibleCount).map((m, i) => (
+          <div
+            key={i}
+            className={`animate-fade-up max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+              m.role === 'user'
+                ? 'ml-auto rounded-br-sm bg-white/10 text-white'
+                : 'rounded-bl-sm border border-beacon/25 bg-beacon/10 text-paper'
+            }`}
+          >
+            {m.text}
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs text-white/40">Not legal advice — always confirm with your DSO</p>
     </div>
   );
 }
@@ -186,82 +313,130 @@ export default function Home() {
   async function submit() {
     if (!email) return;
     setState('busy');
-    try { await joinWaitlist(email); track('waitlist_joined'); setState('done'); }
-    catch { setState('error'); }
+    try {
+      await joinWaitlist(email);
+      track('waitlist_joined');
+      setState('done');
+    } catch {
+      setState('error');
+    }
   }
 
   return (
-    <div className="min-h-screen bg-paper">
+    <div className="min-h-screen bg-white">
+      <style>{`@keyframes fillBar { from { width: 0%; } to { width: 100%; } }`}</style>
+
       {/* nav */}
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+      <header className="absolute inset-x-0 top-0 z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
         <span className="flex items-center gap-2">
-          <span className="font-display text-xl font-semibold text-ink">{APP_NAME}</span>
-          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">AI</span>
+          <span className="font-display text-xl font-semibold text-paper">{APP_NAME}</span>
         </span>
         <div className="flex items-center gap-3 text-sm">
-          <Link href="/login" className="text-slate-600 hover:text-ink">Log in</Link>
-          <Link href="/register" className="rounded-lg bg-ink px-4 py-2 text-white transition hover:bg-ink-700">Get started</Link>
+          <Link href="/login" className="text-white/70 hover:text-white">Log in</Link>
+          <Link href="/register" className="rounded-lg bg-beacon px-4 py-2 font-medium text-ink transition hover:bg-beacon-600">
+            Get started
+          </Link>
         </div>
       </header>
 
-      {/* hero */}
-      <section className="relative overflow-hidden">
-        <FloatingDots />
-        <div className="relative mx-auto max-w-3xl px-6 pb-20 pt-16 text-center">
-          <p className="mb-5 inline-block rounded-full bg-beacon/15 px-3 py-1 text-xs font-semibold tracking-wide text-beacon-600">
-            FOR INTERNATIONAL STUDENTS
-          </p>
-          <h1 className="font-display text-5xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-6xl">
-            The AI that knows your<br />visa better than you do
-          </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-slate-600">
-            Upload your I-20. Get your personal immigration timeline, deadline reminders, and an AI
-            advisor that answers based on YOUR actual dates, not generic USCIS text.
-          </p>
+      {/* Section 1 — Hero */}
+      <section className="relative flex min-h-screen items-center overflow-hidden bg-ink">
+        <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-6 py-28 sm:grid-cols-5 sm:items-center">
+          <div className="sm:col-span-3">
+            <p className="mb-6 inline-block rounded-full border border-beacon/30 bg-beacon/10 px-3 py-1 text-xs font-semibold tracking-wide text-beacon">
+              Built for F-1 students — not for everyone
+            </p>
+            <h1 className="font-display text-4xl font-semibold leading-[1.15] tracking-tight text-paper sm:text-5xl">
+              You&apos;re one missed deadline away from losing your visa status.
+              <br />
+              {APP_NAME} makes sure that never happens.
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
+              Upload your I-20. Get your personal F-1 timeline, automated deadline reminders, an AI
+              advisor that knows your actual program dates — and everything else an international
+              student needs to stay in status from day one to graduation.
+            </p>
 
-          <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <div className="mt-9 flex flex-col items-start gap-3 sm:flex-row">
+              <Link
+                href="/register"
+                className="w-full whitespace-nowrap rounded-xl bg-beacon px-8 py-3.5 text-base font-semibold text-ink shadow-sm transition hover:bg-beacon-600 sm:w-auto"
+              >
+                Build my F-1 timeline →
+              </Link>
+              <a
+                href="#how-it-works"
+                className="w-full whitespace-nowrap rounded-xl border border-white/30 px-8 py-3.5 text-center text-base font-medium text-paper transition hover:bg-white/10 sm:w-auto"
+              >
+                See how it works
+              </a>
+            </div>
+
+            <p className="mt-6 text-xs text-white/40">
+              Used by F-1 students at DePaul, UIUC, Northeastern, NYU, Purdue · Free to start
+            </p>
+          </div>
+
+          <div className="hidden sm:col-span-2 sm:block">
+            <HeroMockup />
+          </div>
+        </div>
+      </section>
+
+      {/* Section 2 — The real problem */}
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="mx-auto max-w-3xl text-center font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+            International students track 40+ deadlines across 6 different government websites.
+            <br />
+            Most students find out they missed something after it&apos;s too late.
+          </h2>
+          <div className="mt-14 grid gap-5 sm:grid-cols-3">
+            {PAIN_POINTS.map((p, i) => (
+              <RevealOnScroll key={p.body} delay={i * 120}>
+                <div className="h-full rounded-2xl border border-slate-200 bg-paper p-6">
+                  <span className="text-2xl">{p.icon}</span>
+                  <p className="mt-3 text-sm leading-relaxed text-slate-700">{p.body}</p>
+                </div>
+              </RevealOnScroll>
+            ))}
+          </div>
+          <p className="mt-10 text-center text-sm font-semibold text-beacon-600">
+            {APP_NAME} tracks all of it — automatically, from your I-20.
+          </p>
+        </div>
+      </section>
+
+      {/* Section 3 — How it works */}
+      <section id="how-it-works" className="bg-paper py-24">
+        <div className="mx-auto max-w-5xl px-6">
+          <h2 className="text-center font-display text-3xl font-semibold text-ink sm:text-4xl">
+            From I-20 to full timeline in 60 seconds
+          </h2>
+          <div className="mt-12">
+            <HowItWorksDemo />
+          </div>
+          <div className="mt-14 text-center">
             <Link
               href="/register"
-              className="w-full whitespace-nowrap rounded-xl bg-beacon px-8 py-3.5 text-base font-semibold text-ink shadow-sm transition hover:bg-beacon-600 sm:w-auto"
+              className="inline-block rounded-xl bg-beacon px-8 py-3.5 text-base font-semibold text-ink shadow-sm transition hover:bg-beacon-600"
             >
-              Get started free
+              Build my F-1 timeline →
             </Link>
-            <a
-              href="#how-it-works"
-              className="w-full whitespace-nowrap rounded-xl border border-slate-300 px-8 py-3.5 text-base font-medium text-ink transition hover:bg-slate-50 sm:w-auto"
-            >
-              See how it works
-            </a>
-          </div>
-          <p className="mt-4 text-xs text-slate-400">Free to start. No credit card.</p>
-
-          <p className="mt-14 text-xs font-medium uppercase tracking-wide text-slate-400">
-            Used by international students at DePaul · UIUC · Northwestern · NYU · Purdue
-          </p>
-        </div>
-      </section>
-
-      {/* interactive demo */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-4xl px-6">
-          <p className="text-center text-xs font-semibold uppercase tracking-wide text-beacon-600">See it in action</p>
-          <h2 className="mt-2 text-center font-display text-3xl font-semibold text-ink">
-            Here&apos;s what {APP_NAME} looks like for a DePaul CS student graduating June 2027
-          </h2>
-          <div className="mt-10">
-            <DemoTabs />
           </div>
         </div>
       </section>
 
-      {/* feature highlights */}
-      <section className="bg-paper py-20">
+      {/* Section 4 — Feature grid */}
+      <section className="bg-ink py-24">
         <div className="mx-auto max-w-5xl px-6">
-          <h2 className="text-center font-display text-3xl font-semibold text-ink">Everything you need, in one place</h2>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className="text-center font-display text-3xl font-semibold text-paper sm:text-4xl">
+            Everything an F-1 student needs — nothing you don&apos;t
+          </h2>
+          <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f, i) => (
               <RevealOnScroll key={f.title} delay={(i % 3) * 100}>
-                <div className="h-full rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+                <div className="h-full rounded-2xl bg-white p-5 shadow-sm transition-transform hover:-translate-y-1 hover:shadow-md">
                   <span className="text-2xl">{f.icon}</span>
                   <h3 className="mt-3 font-display text-lg font-semibold text-ink">{f.title}</h3>
                   <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{f.body}</p>
@@ -272,141 +447,83 @@ export default function Home() {
         </div>
       </section>
 
-      {/* how it works */}
-      <section id="how-it-works" className="bg-white py-20">
-        <div className="mx-auto max-w-5xl px-6">
-          <h2 className="text-center font-display text-3xl font-semibold text-ink">How it works</h2>
-          <div className="relative mt-14 grid gap-12 sm:grid-cols-3 sm:gap-6">
-            <div
-              className="absolute left-0 right-0 top-6 hidden border-t-2 border-dotted border-beacon/40 sm:block"
-              style={{ marginLeft: '16.67%', marginRight: '16.67%' }}
-            />
-            {[
-              {
-                title: 'Upload your I-20 (30 seconds)',
-                body: 'Drag in your I-20 PDF. Waypoint reads your program dates, STEM status, and CPT/OPT history automatically.',
-                icon: (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" strokeLinejoin="round" />
-                    <path d="M14 2v6h6" strokeLinejoin="round" />
-                    <path d="M9 15l3-3 3 3M12 12v6" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ),
-              },
-              {
-                title: 'See your personal timeline (instant)',
-                body: 'Your immigration journey appears instantly: every milestone, deadline, and window specific to your dates.',
-                icon: (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <circle cx="5" cy="6" r="2" />
-                    <circle cx="12" cy="18" r="2" />
-                    <circle cx="19" cy="10" r="2" />
-                    <path d="M5 8v4a2 2 0 0 0 2 2h3M14 18h3a2 2 0 0 0 2-2v-2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Never miss a deadline (ongoing)',
-                body: 'Email reminders at 90, 30, 7, and 1 day before every deadline. Plus an AI advisor that knows your situation.',
-                icon: (
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                ),
-              },
-            ].map((step, i) => (
-              <RevealOnScroll key={step.title} delay={i * 150} className="relative flex flex-col items-center text-center">
-                <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-ink text-beacon ring-8 ring-white">
-                  {step.icon}
-                </div>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-beacon-600">Step {i + 1}</p>
-                <h3 className="mt-1 font-display text-lg font-semibold text-ink">{step.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.body}</p>
-              </RevealOnScroll>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* stats */}
-      <section className="border-y border-slate-200 bg-paper py-14">
-        <div className="mx-auto max-w-4xl px-6">
-          <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Built specifically for F-1 students
-          </p>
-          <div className="mt-8 grid grid-cols-2 gap-6 text-center sm:grid-cols-4 sm:gap-10">
-            {[
-              { stat: '3 min', label: 'to set up' },
-              { stat: '90+ days', label: 'early warning' },
-              { stat: '24 mo', label: 'STEM OPT tracking' },
-              { stat: '100%', label: 'free to start' },
-            ].map((s) => (
-              <div key={s.label}>
-                <div className="font-display text-3xl font-semibold text-ink">{s.stat}</div>
-                <div className="mt-1 text-xs leading-snug text-slate-500">{s.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Security */}
-      <section className="bg-white py-20">
-        <div className="mx-auto max-w-4xl px-6 text-center">
-          <h2 className="font-display text-3xl font-semibold text-ink">Your documents, protected</h2>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3">
-            {[
-              { icon: '🔒', title: 'AES-256 encryption', body: 'The same standard used by banks.' },
-              { icon: '🚫', title: 'Zero data sharing', body: 'Your documents never leave our servers for advertising.' },
-              { icon: '📤', title: 'You own your data', body: 'Export or delete everything instantly.' },
-            ].map((f) => (
-              <div key={f.title} className="rounded-2xl border border-slate-200 p-6">
-                <span className="text-2xl">{f.icon}</span>
-                <p className="mt-3 font-display text-base font-semibold text-ink">{f.title}</p>
-                <p className="mt-1 text-sm text-slate-500">{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* AI advisor showcase */}
-      <section className="bg-beacon/15 py-24">
+      {/* Section 5 — AI advisor showcase */}
+      <section className="bg-beacon py-24">
         <div className="mx-auto grid max-w-5xl gap-10 px-6 sm:grid-cols-2 sm:items-center">
           <div>
-            <h2 className="font-display text-4xl font-semibold leading-tight text-ink">
-              Ask anything about your visa
+            <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+              An immigration advisor
+              <br />
+              that actually knows you.
             </h2>
-            <p className="mt-4 text-sm leading-relaxed text-slate-700">
-              {APP_NAME} knows your actual program dates, STEM status, and CPT history, so every
-              answer is personal.
+            <p className="mt-5 text-sm leading-relaxed text-ink/80">
+              Generic chatbots give generic answers. {APP_NAME} knows your program end date, your CPT
+              history, your STEM status, and your DSO&apos;s name.
+              <br />
+              <br />
+              So when you ask &quot;Am I eligible for OPT?&quot; you don&apos;t get a USCIS FAQ. You get an
+              answer about you.
             </p>
             <Link
               href="/register"
-              className="mt-6 inline-block rounded-xl bg-beacon px-6 py-3 text-sm font-semibold text-ink shadow-sm transition hover:bg-beacon-600"
+              className="mt-7 inline-block rounded-xl bg-ink px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-ink-700"
             >
               Try the AI Advisor →
             </Link>
           </div>
-          <div className="rounded-2xl border border-beacon/30 bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-beacon text-[10px] font-bold text-ink">W</span>
-              {APP_NAME} Advisor
-            </div>
-            <p className="mt-3 min-h-[3lh] font-display text-lg text-ink">
-              <Typewriter words={ADVISOR_QUESTIONS} />
-            </p>
+          <AdvisorChatDemo />
+        </div>
+      </section>
+
+      {/* Section 6 — Security */}
+      <section className="bg-white py-24">
+        <div className="mx-auto max-w-5xl px-6 text-center">
+          <h2 className="mx-auto max-w-2xl font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+            Your immigration documents deserve bank-level security. That&apos;s what you get.
+          </h2>
+          <div className="mt-14 grid gap-6 text-left sm:grid-cols-3">
+            {TRUST_COLUMNS.map((t) => (
+              <div key={t.title} className="rounded-2xl border border-slate-200 p-6">
+                <span className="text-2xl">{t.icon}</span>
+                <p className="mt-3 font-display text-base font-semibold text-ink">{t.title}</p>
+                <p className="mt-2 text-sm leading-relaxed text-slate-500">{t.body}</p>
+              </div>
+            ))}
+          </div>
+          <Link href="/security" className="mt-10 inline-block text-sm font-medium text-slate-500 hover:text-ink">
+            Read our full security policy →
+          </Link>
+        </div>
+      </section>
+
+      {/* Section 7 — Stats */}
+      <section className="bg-ink py-16">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="grid grid-cols-2 gap-8 text-center sm:grid-cols-4">
+            {STATS.map((s) => (
+              <div key={s.label}>
+                <div className="font-display text-3xl font-semibold text-beacon sm:text-4xl">{s.stat}</div>
+                <div className="mt-2 text-xs leading-snug text-white/60">{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* waitlist */}
-      <section className="bg-white py-20">
+      {/* Section 8 — Final CTA */}
+      <section className="bg-white py-24">
         <div className="mx-auto max-w-lg px-6 text-center">
-          <h2 className="font-display text-3xl font-semibold text-ink">
-            Join international students who never miss a deadline
+          <h2 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+            Your I-20 is sitting in a folder somewhere.
+            <br />
+            It should be running your life instead.
           </h2>
+          <p className="mt-5 text-sm leading-relaxed text-slate-600">
+            Upload it. See your timeline in 60 seconds. Get reminders. Ask the AI anything.
+            <br />
+            Free to start — no credit card.
+          </p>
+
           <div className="mx-auto mt-8 flex max-w-md flex-col gap-2 sm:flex-row">
             {state === 'done' ? (
               <div className="w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-200">
@@ -416,40 +533,54 @@ export default function Home() {
             ) : (
               <>
                 <input
-                  type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && submit()}
                   placeholder="you@university.edu"
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-sm shadow-sm outline-none transition focus:border-ink focus:ring-2 focus:ring-ink/10"
                 />
-                <button onClick={submit} disabled={state === 'busy'}
-                  className="whitespace-nowrap rounded-xl bg-beacon px-6 py-3.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-beacon-600 disabled:opacity-50">
-                  {state === 'busy' ? 'Joining…' : 'Get started free'}
+                <button
+                  onClick={submit}
+                  disabled={state === 'busy'}
+                  className="whitespace-nowrap rounded-xl bg-beacon px-6 py-3.5 text-sm font-semibold text-ink shadow-sm transition hover:bg-beacon-600 disabled:opacity-50"
+                >
+                  {state === 'busy' ? 'Joining…' : 'Build my F-1 timeline →'}
                 </button>
               </>
             )}
           </div>
           {state === 'error' && <p className="mt-2 text-sm text-red-600">Something went wrong, try again.</p>}
-          <p className="mt-3 text-xs text-slate-400">No credit card. No subscription. Free to start.</p>
+          <p className="mt-4 text-xs text-slate-400">Joining 100+ F-1 students managing their immigration with {APP_NAME}</p>
         </div>
       </section>
 
-      {/* footer */}
-      <footer className="border-t border-slate-200 bg-white">
-        <div className="mx-auto max-w-5xl px-6 py-10">
-          <div className="flex flex-col items-center gap-2 text-center">
-            <span className="font-display text-lg font-semibold text-ink">{APP_NAME}</span>
-            <p className="max-w-md text-xs text-slate-400">
-              {APP_NAME} is informational only and not a substitute for legal advice. Always confirm
-              immigration matters with your Designated School Official (DSO).
-            </p>
+      {/* Section 9 — Footer */}
+      <footer className="bg-ink-900">
+        <div className="mx-auto max-w-6xl px-6 py-12">
+          <div className="flex flex-col items-center gap-8 sm:flex-row sm:items-start sm:justify-between">
+            <div className="text-center sm:text-left">
+              <span className="font-display text-lg font-semibold text-paper">{APP_NAME}</span>
+              <p className="mt-1 text-xs text-white/40">F-1 immigration, organized.</p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-white/60">
+              <Link href="/dashboard" className="hover:text-white">Dashboard</Link>
+              <Link href="/immigration" className="hover:text-white">Immigration</Link>
+              <Link href="/advisor" className="hover:text-white">AI Advisor</Link>
+              <Link href="/documents" className="hover:text-white">Documents</Link>
+              <Link href="/applications" className="hover:text-white">Applications</Link>
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-white/60">
+              <Link href="/privacy" className="hover:text-white">Privacy</Link>
+              <Link href="/terms" className="hover:text-white">Terms</Link>
+              <Link href="/security" className="hover:text-white">Security</Link>
+              <a href="mailto:support@waypoint.app" className="hover:text-white">Contact</a>
+            </div>
           </div>
-          <div className="mt-4 flex justify-center gap-4 text-xs text-slate-500">
-            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
-            <Link href="/security" className="hover:text-ink">Security</Link>
-            <Link href="/terms" className="hover:text-ink">Terms</Link>
-            <Link href="/login" className="hover:text-ink">Contact</Link>
-          </div>
-          <p className="mt-4 text-center text-xs text-slate-400">Built for F-1 students by someone who lived it.</p>
+          <p className="mt-10 text-center text-xs leading-relaxed text-white/30">
+            {APP_NAME} is informational only and not a substitute for advice from your DSO, SEVP, USCIS, or a
+            qualified immigration attorney.
+          </p>
         </div>
       </footer>
     </div>

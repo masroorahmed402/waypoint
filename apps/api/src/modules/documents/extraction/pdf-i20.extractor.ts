@@ -111,15 +111,28 @@ export class PdfI20Extractor implements DocumentExtractor {
       'PROGRAM START/END DATE', 'Program Start/End Date', 'Program Start / End Date',
     ]);
     if (programDateLine) {
-      const dates = this.extractAllDates(programDateLine);
-      if (dates.length >= 2) {
-        programStartDate = dates[0];
-        programEndDate = dates[1];
-      } else if (dates.length === 1) {
-        programStartDate = dates[0];
+      // Real I-20s render this as "07 SEPTEMBER 2022 - 11 JUNE 2027". Splitting
+      // on the dash between the two dates is a more precise anchor than "take
+      // the first two dates in the label's 200-char window", which can grab a
+      // date from an adjacent field if this value itself is short. Fall back to
+      // the window scan for layouts that don't use a plain " - " separator.
+      const parts = programDateLine.split(/\s{1,3}-\s{1,3}/);
+      if (parts.length >= 2) {
+        programStartDate = this.firstDateToIso(parts[0]);
+        programEndDate = this.firstDateToIso(parts[1]);
+      }
+      if (!programStartDate || !programEndDate) {
+        const dates = this.extractAllDates(programDateLine);
+        if (dates.length >= 2) {
+          programStartDate = programStartDate ?? dates[0];
+          programEndDate = programEndDate ?? dates[1];
+        } else if (dates.length === 1) {
+          programStartDate = programStartDate ?? dates[0];
+        }
       }
     }
     if (programStartDate) found.push('programStartDate');
+    if (programEndDate) found.push('programEndDate');
 
     // Fall back to separate labels if the combined field didn't work.
     if (!programStartDate) {

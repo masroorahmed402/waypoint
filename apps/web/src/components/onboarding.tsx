@@ -73,10 +73,16 @@ export default function Onboarding() {
     const next = { ...f };
     const filled = new Set<string>();
     if (x.schoolName) { next.universityName = x.schoolName; filled.add('universityName'); }
-    if (x.programOfStudy) { next.major = x.programOfStudy; filled.add('major'); }
+    if (x.programOfStudy) {
+      // Defense in depth: the extractor already strips the CIP code (e.g. "11.0201")
+      // off programOfStudy, but guard here too in case a layout it doesn't handle slips one through.
+      next.major = x.programOfStudy.replace(/,?\s*(General\s*)?\d+\.\d+.*$/i, '').trim();
+      filled.add('major');
+    }
     if (x.degreeLevel) { next.degreeLevel = x.degreeLevel; filled.add('degreeLevel'); }
-    if (x.programStartDate) { next.programStartDate = x.programStartDate; filled.add('programStartDate'); }
-    if (x.programEndDate) { next.programEndDate = x.programEndDate; filled.add('programEndDate'); }
+    if (x.programStartDate) { next.programStartDate = x.programStartDate.slice(0, 10); filled.add('programStartDate'); }
+    else if (x.startOfClasses) { next.programStartDate = x.startOfClasses.slice(0, 10); filled.add('programStartDate'); }
+    if (x.programEndDate) { next.programEndDate = x.programEndDate.slice(0, 10); filled.add('programEndDate'); }
     setF(next);
     setPrefilled(filled);
     if (x.sevisId) setSevisId(x.sevisId);
