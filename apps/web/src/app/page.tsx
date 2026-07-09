@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { APP_NAME } from '@/lib/brand';
 import { joinWaitlist } from '@/lib/waitlist';
 import { track } from '@/lib/posthog';
+import { useAuth } from '@/lib/auth-context';
 import RevealOnScroll from '@/components/reveal-on-scroll';
 
 const PAIN_POINTS = [
@@ -309,6 +310,7 @@ function AdvisorChatDemo() {
 export default function Home() {
   const [email, setEmail] = useState('');
   const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle');
+  const { me, loading } = useAuth();
 
   async function submit() {
     if (!email) return;
@@ -326,22 +328,40 @@ export default function Home() {
     <div className="min-h-screen bg-white">
       <style>{`@keyframes fillBar { from { width: 0%; } to { width: 100%; } }`}</style>
 
-      {/* nav */}
-      <header className="absolute inset-x-0 top-0 z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <span className="flex items-center gap-2">
-          <span className="font-display text-xl font-semibold text-paper">{APP_NAME}</span>
-        </span>
-        <div className="flex items-center gap-3 text-sm">
-          <Link href="/login" className="text-white/70 hover:text-white">Log in</Link>
-          <Link href="/register" className="rounded-lg bg-beacon px-4 py-2 font-medium text-ink transition hover:bg-beacon-600">
-            Get started
-          </Link>
-        </div>
-      </header>
+      {/* Section 1 — Hero (nav + banner live inside so they share its ink background) */}
+      <section className="relative flex min-h-screen flex-col overflow-hidden bg-ink">
+        {/* nav */}
+        <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
+          <span className="flex items-center gap-2">
+            <span className="font-display text-xl font-semibold text-paper">{APP_NAME}</span>
+          </span>
+          {!loading && me ? (
+            <div className="flex items-center gap-3 text-sm">
+              <Link href="/dashboard" className="text-white/70 hover:text-white">Dashboard</Link>
+              <Link href="/dashboard" className="rounded-lg bg-beacon px-4 py-2 font-medium text-ink transition hover:bg-beacon-600">
+                Go to app →
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-sm">
+              <Link href="/login" className="text-white/70 hover:text-white">Log in</Link>
+              <Link href="/register" className="rounded-lg bg-beacon px-4 py-2 font-medium text-ink transition hover:bg-beacon-600">
+                Get started
+              </Link>
+            </div>
+          )}
+        </header>
 
-      {/* Section 1 — Hero */}
-      <section className="relative flex min-h-screen items-center overflow-hidden bg-ink">
-        <div className="relative mx-auto grid w-full max-w-6xl gap-12 px-6 py-28 sm:grid-cols-5 sm:items-center">
+        {!loading && me && (
+          <div className="relative z-10 bg-beacon px-6 py-2.5 text-center text-sm font-medium text-ink">
+            Welcome back, {me.firstName}.{' '}
+            <Link href="/dashboard" className="underline underline-offset-2 hover:no-underline">
+              Go to your dashboard →
+            </Link>
+          </div>
+        )}
+
+        <div className="relative mx-auto grid w-full max-w-6xl flex-1 items-center gap-12 px-6 py-16 sm:grid-cols-5">
           <div className="sm:col-span-3">
             <p className="mb-6 inline-block rounded-full border border-beacon/30 bg-beacon/10 px-3 py-1 text-xs font-semibold tracking-wide text-beacon">
               Built for F-1 students — not for everyone

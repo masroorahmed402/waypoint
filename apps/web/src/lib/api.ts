@@ -9,9 +9,16 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+/**
+ * Returns true if refreshed, false if the session is genuinely gone (refresh
+ * token missing/expired/revoked — a clean 401/403). Throws for anything else
+ * (network error, 5xx from a Railway cold start or DB hiccup) so the caller
+ * doesn't mistake "the API is briefly down" for "you're logged out".
+ */
 async function refresh(): Promise<boolean> {
   const res = await fetch(`${API}/auth/refresh`, { method: 'POST', credentials: 'include' });
-  if (!res.ok) return false;
+  if (res.status === 401 || res.status === 403) return false;
+  if (!res.ok) throw new Error(`Session refresh failed with status ${res.status}`);
   const body = await res.json();
   accessToken = body.accessToken;
   return true;
@@ -29,8 +36,15 @@ export async function api<T>(path: string, init: RequestInit = {}, retried = fal
   });
 
   if (res.status === 401 && !retried && !path.startsWith('/auth/')) {
-    if (await refresh()) return api<T>(path, init, true);
-    if (typeof window !== 'undefined') window.location.href = '/login';
+    try {
+      if (await refresh()) return api<T>(path, init, true);
+      // refresh() cleanly reported no valid session — genuinely logged out.
+      if (typeof window !== 'undefined') window.location.href = '/login';
+    } catch {
+      // Network/server error while refreshing — the user may still have a valid
+      // session, so don't log them out. Let the original 401 fall through below
+      // and surface as a normal ApiError the UI can show and let them retry.
+    }
   }
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => ({}));

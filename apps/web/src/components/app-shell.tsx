@@ -73,8 +73,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 ) : (
                   <Link key={n.href} href={n.href}
-                    className={clsx('rounded-md px-3 py-1.5 text-sm',
-                      pathname === n.href ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-500 hover:text-slate-900')}>
+                    className={clsx('rounded-t-md border-b-2 px-3 py-1.5 text-sm transition-colors',
+                      pathname === n.href
+                        ? 'border-beacon font-medium text-slate-900'
+                        : 'border-transparent text-slate-500 hover:border-slate-200 hover:text-slate-900')}>
                     {n.label}
                   </Link>
                 ),

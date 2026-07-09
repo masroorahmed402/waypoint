@@ -1,12 +1,12 @@
-import Link from 'next/link';
 import { APP_NAME } from '@/lib/brand';
+import { BackButton } from '@/components/back-button';
 
 export const metadata = { title: `Security: ${APP_NAME}` };
 
 export default function Security() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
-      <Link href="/" className="text-sm text-slate-500 hover:text-ink">← Back</Link>
+      <BackButton />
       <h1 className="mt-4 font-display text-3xl font-semibold">Security</h1>
       <p className="mt-2 text-sm text-slate-500">How we protect your data, in plain English.</p>
 
