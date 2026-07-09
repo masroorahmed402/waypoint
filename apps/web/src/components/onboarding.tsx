@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { uploadAndExtractI20, I20Extract } from '@/lib/i20';
@@ -68,6 +68,19 @@ export default function Onboarding() {
   const [busy, setBusy] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
+  // The useState initializer above only runs once, at mount — if I-20 extraction
+  // saves the user's name and refreshMe() resolves afterward, that initial value
+  // is already stale. Sync from me whenever it changes so a name found on the I-20
+  // shows up once refreshMe() picks it up, without clobbering a blank field.
+  useEffect(() => {
+    if (me?.firstName && me.firstName !== 'Student') {
+      setPersonal((prev) => ({ ...prev, firstName: me.firstName }));
+    }
+    if (me?.lastName) {
+      setPersonal((prev) => ({ ...prev, lastName: me.lastName }));
+    }
+  }, [me?.firstName, me?.lastName]);
+
   const set = (k: string) => (e: any) => {
     setF({ ...f, [k]: e.target.value });
     if (prefilled.has(k)) { const n = new Set(prefilled); n.delete(k); setPrefilled(n); }
@@ -122,6 +135,9 @@ export default function Onboarding() {
       const extract = await uploadAndExtractI20(file);
       track('i20_uploaded', { hasTextLayer: extract.hasTextLayer, fieldsFound: extract.foundFields.length });
       applyExtract(extract);
+      // The API updates firstName/lastName from the I-20 as part of extraction —
+      // refresh the auth context so step 3's name fields pick it up.
+      await refreshMe();
       setSkippedUpload(false);
       setStep(1);
     } catch (err: any) {
@@ -298,11 +314,11 @@ export default function Onboarding() {
           <div className="space-y-3">
             <div>
               <Label>First name</Label>
-              <Input value={personal.firstName} onChange={(e: any) => setPersonal({ ...personal, firstName: e.target.value })} placeholder="e.g. Mohammed" />
+              <Input value={personal.firstName} onChange={(e: any) => setPersonal({ ...personal, firstName: e.target.value })} placeholder="Your first name" />
             </div>
             <div>
               <Label>Last name</Label>
-              <Input value={personal.lastName} onChange={(e: any) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="e.g. Ahmed" />
+              <Input value={personal.lastName} onChange={(e: any) => setPersonal({ ...personal, lastName: e.target.value })} placeholder="Your last name" />
             </div>
             <div>
               <Label>Latest U.S. arrival date (optional)</Label>
