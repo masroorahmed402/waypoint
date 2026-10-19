@@ -113,7 +113,7 @@ A `Deadline` row has `remindAt` checkpoints (90/30/7/1 days). A scheduled job (N
 
 ## 8. AI integration strategy (Phase 2 — designed, not built)
 
-- Provider-agnostic client (OpenAI-compatible interface; Anthropic API works here too).
+- Provider-agnostic client (OpenAI-compatible interface, so other model providers can be swapped in).
 - RAG over a **curated** corpus only: USCIS pages, ICE SEVP docs, university ISS pages — ingested, chunked, embedded into pgvector (stay in Postgres; no separate vector DB until scale forces it — ADR-006).
 - Hard system-prompt constraints: cite sources, refuse case-specific legal advice, always point to DSO.
 - Conversation history in the `AiConversation`/`AiMessage` tables already present in the schema.

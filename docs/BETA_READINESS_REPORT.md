@@ -154,4 +154,4 @@ Items 6-9 above, plus any deeper mobile-responsiveness or component-consistency 
 
 ## On `AI_ENGINEERING_RULES.md`
 
-Your full standard is now saved as `/CLAUDE.md` at the repo root, which is the file that actually gets auto-loaded into every future session — that supersedes a separate `AI_ENGINEERING_RULES.md`. No need to maintain two copies of the same rules; if you want a short human-facing README pointer to it, that's a one-line addition to `README.md`, not a new rules file.
+Your full standard now lives in a single rules file kept locally at the repo root (not committed), which supersedes a separate `AI_ENGINEERING_RULES.md`. No need to maintain two copies of the same rules; if you want a short human-facing README pointer to it, that's a one-line addition to `README.md`, not a new rules file.

@@ -8,3 +8,7 @@ coverage/
 .uploads-dev/
 cookies.txt
 *.cookies
+
+# Local assistant settings (kept out of the repo)
+.claude/
+CLAUDE.md
